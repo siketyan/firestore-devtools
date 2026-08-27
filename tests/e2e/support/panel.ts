@@ -7,6 +7,8 @@ declare global {
   interface Window {
     /** Delivers capture events to the panel as the background worker would. */
     __push: (events: CaptureEvent[]) => void;
+    /** Tells the panel the inspected page navigated. */
+    __navigate: () => void;
   }
 }
 
@@ -21,6 +23,7 @@ export interface Panel {
   list: Locator;
   rows: () => Promise<string[][]>;
   push: (events: CaptureEvent[]) => Promise<void>;
+  navigate: () => Promise<void>;
   close: () => Promise<void>;
 }
 
@@ -41,6 +44,11 @@ export async function openPanel(
 
   await page.addInitScript((backlog: Exchange[]) => {
     const listeners: Array<(message: unknown) => void> = [];
+    const navigated: Array<() => void> = [];
+
+    window.__navigate = () => {
+      for (const listener of navigated) listener();
+    };
 
     window.__push = (events) => {
       for (const event of events) {
@@ -50,7 +58,18 @@ export async function openPanel(
 
     // Only the two APIs the panel actually reaches for.
     (window as unknown as { chrome: unknown }).chrome = {
-      devtools: { inspectedWindow: { tabId: 7 } },
+      devtools: {
+        inspectedWindow: { tabId: 7 },
+        network: {
+          onNavigated: {
+            addListener: (fn: () => void) => navigated.push(fn),
+            removeListener: (fn: () => void) => {
+              const at = navigated.indexOf(fn);
+              if (at !== -1) navigated.splice(at, 1);
+            },
+          },
+        },
+      },
       runtime: {
         connect: () => ({
           name: "firestore-devtools/panel",
@@ -89,6 +108,10 @@ export async function openPanel(
     push: async (events) => {
       await page.evaluate((batch) => window.__push(batch), events);
       // The panel coalesces updates to one per animation frame.
+      await page.waitForTimeout(120);
+    },
+    navigate: async () => {
+      await page.evaluate(() => window.__navigate());
       await page.waitForTimeout(120);
     },
     close: async () => {

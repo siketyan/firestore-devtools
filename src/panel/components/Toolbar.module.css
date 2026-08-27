@@ -31,6 +31,15 @@
     color: var(--accent);
   }
 
+  .toggle {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    color: var(--text-dim);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
   .group {
     display: flex;
     gap: 4px;

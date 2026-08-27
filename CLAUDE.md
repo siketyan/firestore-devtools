@@ -136,6 +136,13 @@ exchanges.
   are root-relative so both agree; getting this wrong shows up as a blank
   panel, not as an error.
 
+## Panel preferences
+
+`localStorage` is per-extension-origin and never leaves the browser, which is
+the right home for something as small as the Preserve log toggle — but it
+throws outright when a browser is set to block site data, so every access goes
+through the guarded helpers in `src/panel/preferences.ts`.
+
 ## Tests
 
 `tests/unit/` covers the parts with awkward edges — the URL-to-RPC mapping, the

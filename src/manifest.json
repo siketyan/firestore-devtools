@@ -13,17 +13,13 @@
   },
   "firefox:browser_specific_settings": {
     "gecko": {
-      "strict_min_version": "128.0"
-    }
-  },
-  "devtools_page": "devtools/index.html",
-  "firefox:browser_specific_settings": {
-    "gecko": {
+      "strict_min_version": "128.0",
       "data_collection_permissions": {
         "required": ["none"]
       }
     }
   },
+  "devtools_page": "devtools/index.html",
   "background": {
     "chromium:service_worker": "background/index.ts",
     "firefox:scripts": ["background/index.ts"]

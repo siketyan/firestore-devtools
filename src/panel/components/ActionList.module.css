@@ -13,14 +13,9 @@
     text-align: center;
   }
 
-  .hint code {
-    font-family: var(--font-mono);
-  }
-
   .table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
 
     th {
       position: sticky;
@@ -59,21 +54,16 @@
     }
   }
 
-  .rpc {
-    display: flex;
-    flex-direction: column;
-    max-width: 420px;
-  }
-
-  .method {
-    font-weight: 600;
-  }
-
-  .database {
-    overflow: hidden;
+  .verb {
+    width: 1%;
     color: var(--text-dim);
     font-family: var(--font-mono);
-    font-size: 11px;
+  }
+
+  .target {
+    max-width: 480px;
+    overflow: hidden;
+    font-weight: 600;
     text-overflow: ellipsis;
   }
 }

@@ -80,9 +80,8 @@ export function identifyRpc(
   const rest = REST_PATH.exec(url.pathname)?.groups;
   if (rest?.version && rest.database && rest.resource) {
     const { version, database, resource } = rest;
-    const verb = resource.includes(":")
-      ? resource.slice(resource.lastIndexOf(":") + 1)
-      : undefined;
+    const colon = resource.lastIndexOf(":");
+    const verb = colon === -1 ? undefined : resource.slice(colon + 1);
 
     const method = verb
       ? (REST_VERB_TO_RPC[verb] ?? verb)
@@ -93,10 +92,21 @@ export function identifyRpc(
       method,
       transport: "rest",
       database: decodeURIComponent(database),
+      resource: documentResource(
+        colon === -1 ? resource : resource.slice(0, colon),
+      ),
     };
   }
 
   return undefined;
+}
+
+/**
+ * The part of a REST path below the document root, so `documents:runQuery`
+ * becomes `""` and `documents/users/abc` becomes `users/abc`.
+ */
+function documentResource(path: string): string {
+  return decodeURIComponent(path.replace(/^documents\/?/, ""));
 }
 
 /** The project id inside a `projects/p/databases/d` resource name. */

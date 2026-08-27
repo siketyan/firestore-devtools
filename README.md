@@ -1,14 +1,49 @@
 # Firestore DevTools
 
 A browser extension that adds a **Firestore** panel to the browser DevTools and
-shows the traffic between the page and Cloud Firestore the way the Network tab
-shows HTTP requests — including the long-lived streaming RPCs the Network tab
-cannot usefully display.
+shows what a page is doing with Cloud Firestore — the queries, the document
+reads, the listeners and the writes — with the collection or document each one
+touches as its title.
+
+The Network tab can only show you HTTP requests, which is the wrong unit here:
+one listener's request and its responses travel on two different requests, and
+neither of them is named after anything you wrote.
 
 Built with [Extension.js](https://extension.js.org), React and TypeScript.
 
-> **Status: scaffolding.** The capture pipeline and the panel work end to end;
-> see [Roadmap](#roadmap) for what is still missing.
+> **Status: early.** The capture pipeline, the correlator and the panel work
+> end to end; see [Roadmap](#roadmap) for what is still missing.
+
+## What you see
+
+One row per action, not per request. The verb comes first, like an HTTP method,
+and the target is the collection or document it acts on:
+
+| Action | Target | Status | Docs | Latency |
+| --- | --- | --- | --- | --- |
+| `QUERY` | **messages** | active | 2 | 230 ms |
+| `GET` | **users/u1** | active | 1 | 690 ms |
+| `WRITE` | **messages/m3** | complete | 1 | 60 ms |
+| `QUERY` | **users** | 200 | 2 | 80 ms |
+| `GET` | **users/u9** | 403 | — | 40 ms |
+
+The verb is what the developer asked for rather than how the SDK delivered it.
+A one-shot `getDocs()` opens a `Listen` target exactly as `onSnapshot()` does,
+so both are a `QUERY`; whether one is still running shows up as its status
+(`active` versus `complete`).
+
+The list follows new actions the way a log does, and stops following as soon
+as you scroll up to read something.
+
+Selecting a row opens two views that skip the plumbing:
+
+- **Request** — the structured query itself, not the `addTarget.query.…`
+  wrapper that carried it to the server.
+- **Responses** — the documents, not the events. A query that matched three
+  documents arrives as three separate `documentChange` messages; the list shows
+  three documents, and selecting one shows everything under its `document`.
+  Deletes are listed too, struck through. A response that is not documents at
+  all — an error body — is shown whole rather than dropped.
 
 ## What it captures
 
@@ -23,10 +58,23 @@ two transports, and the panel understands both:
 Requests are matched on their path rather than their host, so the Firestore
 emulator (`http://localhost:8080/…`) is picked up as well.
 
-For each exchange the panel shows the RPC name, transport, status, message
-count, size, duration, headers, and every decoded message in order, with the
-direction (`↑` outbound / `↓` inbound) — the streaming ones as they arrive,
-not only when the stream finally closes.
+Streaming messages surface as they arrive, not when the stream finally closes.
+
+### Putting requests back together with their responses
+
+On the WebChannel streams a request and its responses are on *different* HTTP
+exchanges: `addTarget` goes out on a short POST, and everything the server has
+to say about it comes back on a long-lived backchannel that is shared by every
+listener on the page. The only thing relating the two is the `targetId` the SDK
+assigns, so that is what the panel correlates on — along with `targetIds` on
+each `documentChange`, and `removedTargetIds` on each delete.
+
+`Write` has no such id, but the stream is strictly ordered, so its results are
+matched to their requests first-in-first-out.
+
+Messages that belong to no action — the channel handshakes, the `noop`
+keepalives — are dropped: they are transport bookkeeping, not something anyone
+asked for.
 
 ## How it works
 
@@ -60,9 +108,20 @@ page realm            isolated realm        extension              devtools
   class the background uses — fed by the same event stream, so the two cannot
   drift apart, and it survives the service worker idling out.
 
-Decoding lives in `src/shared/`: `firestore.ts` maps a URL to an RPC, and
-`webchannel.ts` implements the Closure WebChannel framing (a form-encoded
-`req0___data__=…` body outbound, length-prefixed JSON chunks inbound).
+`src/shared/` holds everything both sides need:
+
+- **`firestore.ts`** maps a request URL to an RPC.
+- **`webchannel.ts`** implements the Closure WebChannel framing (a form-encoded
+  `req0___data__=…` body outbound, length-prefixed JSON chunks inbound).
+- **`proto.ts`** reads the protobuf-JSON shapes: resource names, and the part
+  of `StructuredQuery` that says which collection is being read.
+- **`payloads.ts`** digs the query out of a request and the documents out of
+  the responses, which is what the detail pane shows.
+- **`actions.ts`** is the correlator described above, and the projection the
+  panel lists.
+- **`store.ts`** replays the capture events into both projections. The
+  background worker leaves the action one switched off — nothing there reads
+  it.
 
 ## Getting started
 
@@ -96,12 +155,12 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
 ## Roadmap
 
 - Persist across page navigation, with a "preserve log" toggle.
-- Decode the protobuf-JSON `Value` wrappers (`{"integerValue": "1"}` → `1`) into
-  something closer to the document as the app sees it.
-- Group the `Listen` messages by target so a query's lifecycle reads as one
-  thing instead of interleaved `targetChange` / `documentChange` messages.
+- Unwrap the `Value` wrappers in document bodies, so a document reads the way
+  the app sees it rather than as `{"body": {"stringValue": "hi"}}`.
+- A raw transport view, for debugging the channel itself rather than the
+  actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.
 - Copy as JSON, and export the capture.
 - Firefox: `world: "MAIN"` content scripts need Firefox 128+; verify the
   WebChannel path there.
-- Automated tests for the decoders and the panel.
+- Automated tests for the decoders, the correlator and the panel.

@@ -19,7 +19,9 @@ const panelPorts = new Map<number, Set<chrome.runtime.Port>>();
 function backlogFor(tabId: number): ExchangeStore {
   let store = backlogs.get(tabId);
   if (!store) {
-    store = new ExchangeStore();
+    // The panels build the action view themselves; here it would be pure
+    // work per tab for nobody to read.
+    store = new ExchangeStore({ actions: false });
     backlogs.set(tabId, store);
   }
   return store;

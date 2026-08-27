@@ -27,6 +27,12 @@ export interface RpcInfo {
   transport: Transport;
   /** e.g. `projects/demo/databases/(default)`, when the URL carries it. */
   database?: string;
+  /**
+   * For the HTTP RPCs, the resource the URL points at, relative to the
+   * database's document root: `""` for `documents:runQuery`, `users/abc` for
+   * `documents/users/abc`.
+   */
+  resource?: string;
 }
 
 /**

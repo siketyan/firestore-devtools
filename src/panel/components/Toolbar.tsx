@@ -1,19 +1,28 @@
+import type { ActionKind } from "../../shared/actions";
 import { classNames } from "../classNames";
 import * as styles from "./Toolbar.module.css";
 
-export type TransportFilter = "all" | "webchannel" | "rest";
+export type KindFilter = "all" | ActionKind;
 
-const TRANSPORTS: Array<{ value: TransportFilter; label: string }> = [
+/** The filter chips. `transaction` is rare, so it shares one with nothing. */
+const KINDS: Array<{ value: KindFilter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "webchannel", label: "Streaming" },
-  { value: "rest", label: "Unary" },
+  { value: "query", label: "Query" },
+  { value: "get", label: "Get" },
+  { value: "write", label: "Write" },
+  { value: "transaction", label: "Transaction" },
 ];
+
+/** Whether an action passes the chip the user picked. */
+export function matchesKind(kind: ActionKind, filter: KindFilter): boolean {
+  return filter === "all" || kind === filter;
+}
 
 export interface ToolbarProps {
   query: string;
   onQueryChange: (query: string) => void;
-  transport: TransportFilter;
-  onTransportChange: (transport: TransportFilter) => void;
+  kind: KindFilter;
+  onKindChange: (kind: KindFilter) => void;
   onClear: () => void;
   shown: number;
   total: number;
@@ -22,8 +31,8 @@ export interface ToolbarProps {
 export function Toolbar({
   query,
   onQueryChange,
-  transport,
-  onTransportChange,
+  kind,
+  onKindChange,
   onClear,
   shown,
   total,
@@ -43,20 +52,17 @@ export function Toolbar({
         className={styles.filter}
         type="search"
         value={query}
-        placeholder="Filter by RPC, URL or payload"
+        placeholder="Filter by collection, document or payload"
         onChange={(event) => onQueryChange(event.target.value)}
       />
 
       <div className={styles.group}>
-        {TRANSPORTS.map(({ value, label }) => (
+        {KINDS.map(({ value, label }) => (
           <button
             type="button"
             key={value}
-            className={classNames(
-              styles.chip,
-              value === transport && styles.active,
-            )}
-            onClick={() => onTransportChange(value)}
+            className={classNames(styles.chip, value === kind && styles.active)}
+            onClick={() => onKindChange(value)}
           >
             {label}
           </button>
@@ -64,7 +70,7 @@ export function Toolbar({
       </div>
 
       <span className={styles.count}>
-        {shown === total ? `${total}` : `${shown} / ${total}`} requests
+        {shown === total ? `${total}` : `${shown} / ${total}`} actions
       </span>
     </div>
   );

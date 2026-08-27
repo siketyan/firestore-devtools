@@ -1,14 +1,32 @@
 # Firestore DevTools
 
 A browser extension that adds a **Firestore** panel to the browser DevTools and
-shows the traffic between the page and Cloud Firestore the way the Network tab
-shows HTTP requests — including the long-lived streaming RPCs the Network tab
-cannot usefully display.
+shows what a page is doing with Cloud Firestore — the queries, the document
+reads, the listeners and the writes — with the collection or document each one
+touches as its title.
+
+The Network tab can only show you HTTP requests, which is the wrong unit here:
+one listener's request and its responses travel on two different requests, and
+neither of them is named after anything you wrote.
 
 Built with [Extension.js](https://extension.js.org), React and TypeScript.
 
-> **Status: scaffolding.** The capture pipeline and the panel work end to end;
-> see [Roadmap](#roadmap) for what is still missing.
+> **Status: early.** The capture pipeline, the correlator and the panel work
+> end to end; see [Roadmap](#roadmap) for what is still missing.
+
+## What you see
+
+One row per action, not per request:
+
+| Target | Action | Transport | Status | Docs |
+| --- | --- | --- | --- | --- |
+| **messages**<br><sub>`where read == false · orderBy createdAt desc · limit 25`</sub> | Listen | WebChannel | active | 2 |
+| **users/u1** | Listen | WebChannel | active | 1 |
+| **messages/m3**<br><sub>`set`</sub> | Write | WebChannel | complete | 1 |
+| **users**<br><sub>`where age >= 18 · limit 10`</sub> | RunQuery | HTTP | 200 | 2 |
+
+Selecting one shows its request, every response it has received so far, and an
+overview naming the HTTP exchanges its messages actually travelled on.
 
 ## What it captures
 
@@ -23,10 +41,23 @@ two transports, and the panel understands both:
 Requests are matched on their path rather than their host, so the Firestore
 emulator (`http://localhost:8080/…`) is picked up as well.
 
-For each exchange the panel shows the RPC name, transport, status, message
-count, size, duration, headers, and every decoded message in order, with the
-direction (`↑` outbound / `↓` inbound) — the streaming ones as they arrive,
-not only when the stream finally closes.
+Streaming messages surface as they arrive, not when the stream finally closes.
+
+### Putting requests back together with their responses
+
+On the WebChannel streams a request and its responses are on *different* HTTP
+exchanges: `addTarget` goes out on a short POST, and everything the server has
+to say about it comes back on a long-lived backchannel that is shared by every
+listener on the page. The only thing relating the two is the `targetId` the SDK
+assigns, so that is what the panel correlates on — along with `targetIds` on
+each `documentChange`, and `removedTargetIds` on each delete.
+
+`Write` has no such id, but the stream is strictly ordered, so its results are
+matched to their requests first-in-first-out.
+
+Whatever cannot be attributed to an action — the channel handshakes, the
+`noop` keepalives — is collected under one `channel` row per stream rather
+than being dropped.
 
 ## How it works
 
@@ -60,9 +91,18 @@ page realm            isolated realm        extension              devtools
   class the background uses — fed by the same event stream, so the two cannot
   drift apart, and it survives the service worker idling out.
 
-Decoding lives in `src/shared/`: `firestore.ts` maps a URL to an RPC, and
-`webchannel.ts` implements the Closure WebChannel framing (a form-encoded
-`req0___data__=…` body outbound, length-prefixed JSON chunks inbound).
+`src/shared/` holds everything both sides need:
+
+- **`firestore.ts`** maps a request URL to an RPC.
+- **`webchannel.ts`** implements the Closure WebChannel framing (a form-encoded
+  `req0___data__=…` body outbound, length-prefixed JSON chunks inbound).
+- **`proto.ts`** reads the protobuf-JSON shapes: resource names, `Value`
+  wrappers and `StructuredQuery`, which is what turns a query into
+  `where read == false · orderBy createdAt desc · limit 25`.
+- **`actions.ts`** is the correlator described above.
+- **`store.ts`** replays the capture events into both projections. The
+  background worker leaves the action one switched off — nothing there reads
+  it.
 
 ## Getting started
 
@@ -96,12 +136,14 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
 ## Roadmap
 
 - Persist across page navigation, with a "preserve log" toggle.
-- Decode the protobuf-JSON `Value` wrappers (`{"integerValue": "1"}` → `1`) into
-  something closer to the document as the app sees it.
-- Group the `Listen` messages by target so a query's lifecycle reads as one
-  thing instead of interleaved `targetChange` / `documentChange` messages.
+- Unwrap the `Value` wrappers in document bodies too, so a `documentChange`
+  reads as the document the app sees rather than as
+  `{"body": {"stringValue": "hi"}}`. `proto.ts` already does this for the
+  values inside a query.
+- A raw transport view, for debugging the channel itself rather than the
+  actions riding on it.
 - Timeline/waterfall column.
 - Copy as JSON, and export the capture.
 - Firefox: `world: "MAIN"` content scripts need Firefox 128+; verify the
   WebChannel path there.
-- Automated tests for the decoders and the panel.
+- Automated tests for the decoders, the correlator and the panel.

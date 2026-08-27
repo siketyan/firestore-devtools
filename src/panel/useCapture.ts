@@ -6,6 +6,7 @@ import {
   useSyncExternalStore,
 } from "react";
 
+import type { Action } from "../shared/actions";
 import { ExchangeStore } from "../shared/store";
 import {
   type Exchange,
@@ -15,7 +16,10 @@ import {
 } from "../shared/types";
 
 export interface Capture {
-  exchanges: readonly Exchange[];
+  /** The traffic seen as the actions that produced it. */
+  actions: readonly Action[];
+  /** The HTTP exchanges an action's messages travelled on. */
+  exchangesOf: (action: Action) => Exchange[];
   clear: () => void;
 }
 
@@ -51,7 +55,10 @@ export function useCapture(): Capture {
   const portRef = useRef<chrome.runtime.Port | undefined>(undefined);
 
   const subscribe = useMemo(() => batchByFrame(store.subscribe), [store]);
-  const exchanges = useSyncExternalStore(subscribe, store.getSnapshot);
+  // Subscribing to the exchange snapshot is enough: the store rebuilds both
+  // projections in the same mutation.
+  useSyncExternalStore(subscribe, store.getSnapshot);
+  const actions = store.getActions();
 
   useEffect(() => {
     const tabId = chrome.devtools.inspectedWindow.tabId;
@@ -109,5 +116,10 @@ export function useCapture(): Capture {
     } satisfies PanelRequest);
   };
 
-  return { exchanges, clear };
+  const exchangesOf = (action: Action): Exchange[] =>
+    action.exchangeIds
+      .map((id) => store.get(id))
+      .filter((exchange): exchange is Exchange => exchange != null);
+
+  return { actions, exchangesOf, clear };
 }

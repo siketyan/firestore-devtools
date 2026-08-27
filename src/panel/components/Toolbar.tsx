@@ -1,19 +1,38 @@
+import type { ActionKind } from "../../shared/actions";
 import { classNames } from "../classNames";
 import * as styles from "./Toolbar.module.css";
 
-export type TransportFilter = "all" | "webchannel" | "rest";
+export type KindFilter = "all" | ActionKind;
 
-const TRANSPORTS: Array<{ value: TransportFilter; label: string }> = [
-  { value: "all", label: "All" },
-  { value: "webchannel", label: "Streaming" },
-  { value: "rest", label: "Unary" },
+/**
+ * The filter chips. `transaction` and `channel` share one chip: neither is
+ * something the developer wrote, and both are rare.
+ */
+const KINDS: Array<{
+  value: KindFilter;
+  label: string;
+  matches: ActionKind[];
+}> = [
+  { value: "all", label: "All", matches: [] },
+  { value: "listen", label: "Listen", matches: ["listen"] },
+  { value: "query", label: "Query", matches: ["query"] },
+  { value: "get", label: "Get", matches: ["get"] },
+  { value: "write", label: "Write", matches: ["write"] },
+  { value: "channel", label: "Other", matches: ["channel", "transaction"] },
 ];
+
+/** Whether an action passes the chip the user picked. */
+export function matchesKind(kind: ActionKind, filter: KindFilter): boolean {
+  if (filter === "all") return true;
+  const chip = KINDS.find((entry) => entry.value === filter);
+  return chip ? chip.matches.includes(kind) : kind === filter;
+}
 
 export interface ToolbarProps {
   query: string;
   onQueryChange: (query: string) => void;
-  transport: TransportFilter;
-  onTransportChange: (transport: TransportFilter) => void;
+  kind: KindFilter;
+  onKindChange: (kind: KindFilter) => void;
   onClear: () => void;
   shown: number;
   total: number;
@@ -22,8 +41,8 @@ export interface ToolbarProps {
 export function Toolbar({
   query,
   onQueryChange,
-  transport,
-  onTransportChange,
+  kind,
+  onKindChange,
   onClear,
   shown,
   total,
@@ -43,20 +62,17 @@ export function Toolbar({
         className={styles.filter}
         type="search"
         value={query}
-        placeholder="Filter by RPC, URL or payload"
+        placeholder="Filter by collection, document or payload"
         onChange={(event) => onQueryChange(event.target.value)}
       />
 
       <div className={styles.group}>
-        {TRANSPORTS.map(({ value, label }) => (
+        {KINDS.map(({ value, label }) => (
           <button
             type="button"
             key={value}
-            className={classNames(
-              styles.chip,
-              value === transport && styles.active,
-            )}
-            onClick={() => onTransportChange(value)}
+            className={classNames(styles.chip, value === kind && styles.active)}
+            onClick={() => onKindChange(value)}
           >
             {label}
           </button>
@@ -64,7 +80,7 @@ export function Toolbar({
       </div>
 
       <span className={styles.count}>
-        {shown === total ? `${total}` : `${shown} / ${total}`} requests
+        {shown === total ? `${total}` : `${shown} / ${total}`} actions
       </span>
     </div>
   );

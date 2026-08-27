@@ -1,5 +1,7 @@
 import {useState} from 'react'
 
+import './JsonView.css'
+
 export interface JsonViewProps {
   value: unknown
   /** Depth up to which nodes start expanded. */

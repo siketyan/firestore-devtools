@@ -49,7 +49,8 @@ page realm            isolated realm        extension              devtools
 - **`src/content/interceptor.ts`** runs in the page's own realm (`world: "MAIN"`)
   at `document_start`, so it wraps `fetch` and `XMLHttpRequest` before the
   Firebase SDK captures its own references to them. It cannot use `chrome.*`,
-  so it posts what it captures with `window.postMessage`.
+  so it posts what it captures with `window.postMessage`. The wrapping itself
+  lives in `src/content/capture/`.
 - **`src/content/bridge.ts`** runs in the isolated realm of the same document
   and forwards those messages to the background worker.
 - **`src/background/index.ts`** keeps a bounded backlog per tab (so a panel
@@ -65,11 +66,11 @@ Decoding lives in `src/shared/`: `firestore.ts` maps a URL to an RPC, and
 
 ## Getting started
 
-Requires Node.js 22.12 or newer.
+Requires Node.js 22.12 or newer and [pnpm](https://pnpm.io).
 
 ```sh
-npm install
-npm run dev          # launches a fresh Chromium with the extension loaded
+pnpm install
+pnpm dev             # launches a fresh Chromium with the extension loaded
 ```
 
 Open DevTools on a page that uses Firestore and pick the **Firestore** tab.
@@ -78,10 +79,10 @@ Reload the page with the panel open to capture the initial `Listen` stream.
 Other commands:
 
 ```sh
-npm run build          # production build into dist/<browser>
-npm run build:firefox  # ...for a specific browser
-npm run preview        # load a production build in a browser
-npm run typecheck      # tsc --noEmit
+pnpm build          # production build into dist/<browser>
+pnpm build:firefox  # ...for a specific browser
+pnpm preview        # load a production build in a browser
+pnpm typecheck      # tsc --noEmit
 ```
 
 ## Roadmap

@@ -1,3 +1,5 @@
+import './Toolbar.css'
+
 export type TransportFilter = 'all' | 'webchannel' | 'rest'
 
 const TRANSPORTS: Array<{value: TransportFilter; label: string}> = [

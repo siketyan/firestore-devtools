@@ -1,5 +1,6 @@
 import type {Exchange} from '../../shared/types'
 import {formatBytes, formatDuration, formatTime} from '../format'
+import './ExchangeList.css'
 
 export interface ExchangeListProps {
   exchanges: readonly Exchange[]

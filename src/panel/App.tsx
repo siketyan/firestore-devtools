@@ -5,6 +5,7 @@ import {ExchangeDetail} from './components/ExchangeDetail'
 import {ExchangeList} from './components/ExchangeList'
 import {Toolbar, type TransportFilter} from './components/Toolbar'
 import {useCapture} from './useCapture'
+import './App.css'
 
 function matches(
   exchange: Exchange,

@@ -3,6 +3,7 @@ import {useState} from 'react'
 import type {Exchange, Frame} from '../../shared/types'
 import {formatBytes, formatDuration, formatJson, formatTime} from '../format'
 import {JsonView} from './JsonView'
+import './ExchangeDetail.css'
 
 type Tab = 'overview' | 'headers' | 'frames'
 

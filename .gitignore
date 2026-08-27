@@ -15,6 +15,10 @@ dist
 # extension.js local session state
 .extension-js
 
+# extension.js regenerates this on every build; the types it references are
+# wired up through tsconfig.json#compilerOptions.types instead
+extension-env.d.ts
+
 # local env files
 .env
 .env*

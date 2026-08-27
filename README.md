@@ -66,7 +66,9 @@ Decoding lives in `src/shared/`: `firestore.ts` maps a URL to an RPC, and
 
 ## Getting started
 
-Requires Node.js 22.12 or newer and [pnpm](https://pnpm.io).
+Requires Node.js 22.12 or newer. The pnpm version is pinned in
+`package.json#packageManager`, so run it through Corepack (`corepack pnpm …`)
+or any pnpm that honours that field.
 
 ```sh
 pnpm install
@@ -83,7 +85,13 @@ pnpm build          # production build into dist/<browser>
 pnpm build:firefox  # ...for a specific browser
 pnpm preview        # load a production build in a browser
 pnpm typecheck      # tsc --noEmit
+pnpm lint           # biome check
+pnpm lint:fix       # biome check --write
+pnpm format         # biome format --write
 ```
+
+Dependencies are pinned to exact versions; `.npmrc` sets `save-exact` so they
+stay that way.
 
 ## Roadmap
 

@@ -12,7 +12,10 @@ function matches(
   query: string,
   transport: TransportFilter
 ): boolean {
-  if (transport !== 'all' && exchange.rpc.transport !== (transport as Transport))
+  if (
+    transport !== 'all' &&
+    exchange.rpc.transport !== (transport as Transport)
+  )
     return false
   if (!query) return true
 

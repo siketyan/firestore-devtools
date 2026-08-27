@@ -1,9 +1,9 @@
-import {useEffect, useMemo, useRef, useState} from 'react'
+import {useEffect, useMemo, useRef, useState, useSyncExternalStore} from 'react'
 
 import {ExchangeStore} from '../shared/store'
 import {
-  PANEL_PORT_NAME,
   type Exchange,
+  PANEL_PORT_NAME,
   type PanelRequest,
   type PanelResponse
 } from '../shared/types'
@@ -14,26 +14,18 @@ export interface Capture {
 }
 
 /**
- * Mirrors the background worker's capture buffer for the inspected tab into a
- * local store, and re-renders at most once per frame no matter how chatty the
- * stream is.
+ * Coalesces notifications to one per animation frame, so a chatty stream
+ * cannot re-render the panel once per message.
  */
-export function useCapture(): Capture {
-  const store = useMemo(() => new ExchangeStore(), [])
-  const portRef = useRef<chrome.runtime.Port | undefined>(undefined)
-  const [version, setVersion] = useState(0)
-
-  // The store mutates its exchanges in place, so hand callers a fresh array
-  // identity on every bump; without it downstream `useMemo`s never recompute.
-  const exchanges = useMemo(() => store.exchanges.slice(), [store, version])
-
-  useEffect(() => {
+function batchByFrame(subscribe: (listener: () => void) => () => void) {
+  return (listener: () => void): (() => void) => {
     let frame = 0
-    const unsubscribe = store.subscribe(() => {
+
+    const unsubscribe = subscribe(() => {
       if (frame) return
       frame = requestAnimationFrame(() => {
         frame = 0
-        setVersion(store.version)
+        listener()
       })
     })
 
@@ -41,7 +33,19 @@ export function useCapture(): Capture {
       unsubscribe()
       if (frame) cancelAnimationFrame(frame)
     }
-  }, [store])
+  }
+}
+
+/**
+ * Mirrors the background worker's capture buffer for the inspected tab into a
+ * local store, and exposes it to React.
+ */
+export function useCapture(): Capture {
+  const [store] = useState(() => new ExchangeStore())
+  const portRef = useRef<chrome.runtime.Port | undefined>(undefined)
+
+  const subscribe = useMemo(() => batchByFrame(store.subscribe), [store])
+  const exchanges = useSyncExternalStore(subscribe, store.getSnapshot)
 
   useEffect(() => {
     const tabId = chrome.devtools.inspectedWindow.tabId
@@ -60,7 +64,8 @@ export function useCapture(): Capture {
             // Only trust the backlog on the first connection: after the worker
             // has been suspended and restarted its buffer is empty, and the
             // panel is the one holding the full history.
-            if (store.exchanges.length === 0) store.replace(message.exchanges)
+            if (store.getSnapshot().length === 0)
+              store.replace(message.exchanges)
             break
           case 'event':
             store.apply(message.event)

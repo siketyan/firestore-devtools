@@ -32,9 +32,12 @@ export function ExchangeDetail({exchange, onClose}: ExchangeDetailProps) {
         <div className="detail__tabs">
           {TABS.map(({value, label}) => (
             <button
+              type="button"
               key={value}
               className={
-                value === tab ? 'detail__tab detail__tab--active' : 'detail__tab'
+                value === tab
+                  ? 'detail__tab detail__tab--active'
+                  : 'detail__tab'
               }
               onClick={() => setTab(value)}
             >
@@ -42,7 +45,12 @@ export function ExchangeDetail({exchange, onClose}: ExchangeDetailProps) {
             </button>
           ))}
         </div>
-        <button className="detail__close" onClick={onClose} title="Close">
+        <button
+          type="button"
+          className="detail__close"
+          onClick={onClose}
+          title="Close"
+        >
           ×
         </button>
       </header>
@@ -75,13 +83,19 @@ function Overview({exchange}: {exchange: Exchange}) {
     ['Method', exchange.method],
     ['URL', exchange.url],
     ['Page', exchange.pageUrl],
-    ['Status', exchange.error ?? `${exchange.status ?? '—'} ${exchange.statusText ?? ''}`.trim()],
+    [
+      'Status',
+      exchange.error ??
+        `${exchange.status ?? '—'} ${exchange.statusText ?? ''}`.trim()
+    ],
     ['State', exchange.state],
     ['Started', formatTime(exchange.startedAt)],
     [
       'Duration',
       formatDuration(
-        exchange.finishedAt ? exchange.finishedAt - exchange.startedAt : undefined
+        exchange.finishedAt
+          ? exchange.finishedAt - exchange.startedAt
+          : undefined
       )
     ],
     ['Sent', formatBytes(exchange.bytesSent)],
@@ -120,26 +134,28 @@ function Frames({
     <div className="frames">
       <ol className="frames__list">
         {exchange.frames.map((frame) => (
-          <li
-            key={frame.id}
-            className={[
-              'frames__item',
-              `frames__item--${frame.direction}`,
-              frame.id === selectedFrame?.id ? 'frames__item--selected' : ''
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            onClick={() => onSelect(frame.id)}
-          >
-            <span className="frames__arrow">
-              {frame.direction === 'outbound' ? '↑' : '↓'}
-            </span>
-            <span className="frames__label">
-              {frame.label ?? frame.raw.slice(0, 80)}
-            </span>
-            <span className="frames__meta">
-              {formatBytes(frame.byteLength)} · {formatTime(frame.timestamp)}
-            </span>
+          <li key={frame.id}>
+            <button
+              type="button"
+              className={[
+                'frames__item',
+                `frames__item--${frame.direction}`,
+                frame.id === selectedFrame?.id ? 'frames__item--selected' : ''
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => onSelect(frame.id)}
+            >
+              <span className="frames__arrow">
+                {frame.direction === 'outbound' ? '↑' : '↓'}
+              </span>
+              <span className="frames__label">
+                {frame.label ?? frame.raw.slice(0, 80)}
+              </span>
+              <span className="frames__meta">
+                {formatBytes(frame.byteLength)} · {formatTime(frame.timestamp)}
+              </span>
+            </button>
           </li>
         ))}
       </ol>

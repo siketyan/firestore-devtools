@@ -6,12 +6,12 @@
  * `content/bridge.ts` picks it up.
  */
 import {
-  PAGE_MESSAGE_SOURCE,
   type CaptureEvent,
   type Direction,
   type ExchangeEnd,
   type ExchangeStart,
   type Frame,
+  PAGE_MESSAGE_SOURCE,
   type PageMessage
 } from '../../shared/types'
 

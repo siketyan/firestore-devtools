@@ -12,8 +12,8 @@ export interface ExchangeStoreOptions {
  * capture events. The background worker keeps one per tab as a backlog and the
  * panel keeps one as its view model, so the two can never drift apart.
  *
- * Exchanges are mutated in place; subscribers are told *that* something
- * changed via a version counter rather than being handed new objects.
+ * Exchanges are mutated in place; what changes on every mutation is the
+ * snapshot array holding them, so subscribers have something to compare.
  */
 export class ExchangeStore {
   readonly #maxExchanges: number
@@ -21,19 +21,12 @@ export class ExchangeStore {
   readonly #order: Exchange[] = []
   readonly #byId = new Map<string, Exchange>()
   readonly #listeners = new Set<() => void>()
-  #version = 0
+  /** Rebuilt on every change, so subscribers can compare it by identity. */
+  #snapshot: readonly Exchange[] = []
 
   constructor(options: ExchangeStoreOptions = {}) {
     this.#maxExchanges = options.maxExchanges ?? 500
     this.#maxFramesPerExchange = options.maxFramesPerExchange ?? 500
-  }
-
-  get exchanges(): readonly Exchange[] {
-    return this.#order
-  }
-
-  get version(): number {
-    return this.#version
   }
 
   get(id: string): Exchange | undefined {
@@ -42,10 +35,16 @@ export class ExchangeStore {
 
   subscribe = (listener: () => void): (() => void) => {
     this.#listeners.add(listener)
-    return () => this.#listeners.delete(listener)
+    return () => {
+      this.#listeners.delete(listener)
+    }
   }
 
-  getVersion = (): number => this.#version
+  /**
+   * The current exchanges. The array identity changes on every mutation, and
+   * only then, which is what `useSyncExternalStore` needs.
+   */
+  getSnapshot = (): readonly Exchange[] => this.#snapshot
 
   apply(event: CaptureEvent): void {
     switch (event.kind) {
@@ -115,7 +114,7 @@ export class ExchangeStore {
   }
 
   #bump(): void {
-    this.#version += 1
+    this.#snapshot = [...this.#order]
     for (const listener of this.#listeners) listener()
   }
 }

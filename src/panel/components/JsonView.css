@@ -9,6 +9,15 @@
 }
 
 .json__row--toggle {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
   cursor: pointer;
   user-select: none;
 }

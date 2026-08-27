@@ -3,9 +3,9 @@
  */
 import type {RpcInfo} from '../../shared/types'
 import {
-  WebChannelResponseParser,
   describePayload,
-  parseWebChannelRequest
+  parseWebChannelRequest,
+  WebChannelResponseParser
 } from '../../shared/webchannel'
 import {byteLengthOf, emitFrame} from './channel'
 

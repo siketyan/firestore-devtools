@@ -77,7 +77,9 @@ export function ExchangeList({
               </td>
               <td>{statusOf(exchange)}</td>
               <td>{exchange.frames.length}</td>
-              <td>{formatBytes(exchange.bytesSent + exchange.bytesReceived)}</td>
+              <td>
+                {formatBytes(exchange.bytesSent + exchange.bytesReceived)}
+              </td>
               <td>{formatDuration(durationOf(exchange))}</td>
               <td>{formatTime(exchange.startedAt)}</td>
             </tr>

@@ -28,12 +28,7 @@ interface JsonNodeProps {
   defaultExpandedDepth: number
 }
 
-function JsonNode({
-  name,
-  value,
-  depth,
-  defaultExpandedDepth
-}: JsonNodeProps) {
+function JsonNode({name, value, depth, defaultExpandedDepth}: JsonNodeProps) {
   const [expanded, setExpanded] = useState(depth < defaultExpandedDepth)
 
   const isArray = Array.isArray(value)
@@ -56,7 +51,8 @@ function JsonNode({
 
   return (
     <div>
-      <div
+      <button
+        type="button"
         className="json__row json__row--toggle"
         style={{paddingLeft: depth * 12}}
         onClick={() => setExpanded((current) => !current)}
@@ -66,7 +62,7 @@ function JsonNode({
         <span className="json__summary">
           {isArray ? `Array(${entries.length})` : `{${entries.length}}`}
         </span>
-      </div>
+      </button>
 
       {expanded
         ? entries.map(([key, item]) => (

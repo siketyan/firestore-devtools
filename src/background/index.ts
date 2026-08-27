@@ -7,8 +7,8 @@
  */
 import {ExchangeStore} from '../shared/store'
 import {
-  PANEL_PORT_NAME,
   type CaptureMessage,
+  PANEL_PORT_NAME,
   type PanelRequest,
   type PanelResponse
 } from '../shared/types'
@@ -67,7 +67,7 @@ chrome.runtime.onConnect.addListener((port) => {
 
         port.postMessage({
           type: 'snapshot',
-          exchanges: [...backlogFor(request.tabId).exchanges]
+          exchanges: [...backlogFor(request.tabId).getSnapshot()]
         } satisfies PanelResponse)
         break
       }

@@ -29,7 +29,12 @@ export function Toolbar({
 }: ToolbarProps) {
   return (
     <div className="toolbar">
-      <button className="toolbar__button" onClick={onClear} title="Clear">
+      <button
+        type="button"
+        className="toolbar__button"
+        onClick={onClear}
+        title="Clear"
+      >
         Clear
       </button>
 
@@ -44,6 +49,7 @@ export function Toolbar({
       <div className="toolbar__group">
         {TRANSPORTS.map(({value, label}) => (
           <button
+            type="button"
             key={value}
             className={
               value === transport

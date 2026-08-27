@@ -6,8 +6,8 @@
  * and forwards everything the interceptor posts to the background worker.
  */
 import {
-  PAGE_MESSAGE_SOURCE,
   type CaptureMessage,
+  PAGE_MESSAGE_SOURCE,
   type PageMessage
 } from '../shared/types'
 

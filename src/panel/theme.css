@@ -11,7 +11,7 @@
   --inbound: #0f9d58;
   --error: #d93025;
 
-  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 

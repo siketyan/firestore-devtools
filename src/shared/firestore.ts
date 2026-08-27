@@ -7,7 +7,7 @@ import type {RpcInfo} from './types'
  * WebChannel, which puts the fully qualified service and method in the path.
  */
 const WEBCHANNEL_PATH =
-  /^\/(google\.firestore\.(v[0-9a-z]+)\.Firestore)\/([A-Za-z]\w*)\/channel$/
+  /^\/(?<service>google\.firestore\.v[0-9a-z]+\.Firestore)\/(?<method>[A-Za-z]\w*)\/channel$/
 
 /**
  * `https://firestore.googleapis.com/v1/projects/p/databases/(default)/documents:commit`
@@ -16,7 +16,7 @@ const WEBCHANNEL_PATH =
  * `:verb` segment (or no verb at all, for the REST-style document reads).
  */
 const REST_PATH =
-  /^\/(v[0-9a-z]+)\/(projects\/[^/]+\/databases\/[^/]+)\/(.+)$/
+  /^\/(?<version>v[0-9a-z]+)\/(?<database>projects\/[^/]+\/databases\/[^/]+)\/(?<resource>.+)$/
 
 /** URL verb -> RPC name, mirroring the mapping the Firestore SDK uses. */
 const REST_VERB_TO_RPC: Record<string, string> = {
@@ -66,23 +66,22 @@ export function identifyRpc(
   const url = toUrl(rawUrl, base)
   if (!url) return undefined
 
-  const webChannel = WEBCHANNEL_PATH.exec(url.pathname)
-  if (webChannel) {
-    const [, service, , method] = webChannel
+  const webChannel = WEBCHANNEL_PATH.exec(url.pathname)?.groups
+  if (webChannel?.service && webChannel.method) {
     return {
-      service: service!,
-      method: method!,
+      service: webChannel.service,
+      method: webChannel.method,
       transport: 'webchannel',
       // The SDK passes the database as a query parameter on the channel URL.
       database: url.searchParams.get('database') ?? undefined
     }
   }
 
-  const rest = REST_PATH.exec(url.pathname)
-  if (rest) {
-    const [, version, database, resource] = rest
-    const verb = resource!.includes(':')
-      ? resource!.slice(resource!.lastIndexOf(':') + 1)
+  const rest = REST_PATH.exec(url.pathname)?.groups
+  if (rest?.version && rest.database && rest.resource) {
+    const {version, database, resource} = rest
+    const verb = resource.includes(':')
+      ? resource.slice(resource.lastIndexOf(':') + 1)
       : undefined
 
     const method = verb
@@ -93,7 +92,7 @@ export function identifyRpc(
       service: `google.firestore.${version}.Firestore`,
       method,
       transport: 'rest',
-      database: decodeURIComponent(database!)
+      database: decodeURIComponent(database)
     }
   }
 

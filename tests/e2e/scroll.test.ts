@@ -64,7 +64,7 @@ describe("following new actions", () => {
       browser,
       Array.from({ length: 40 }, (_, index) => read(index)),
       // Short enough that forty rows do not fit.
-      { width: 1000, height: 500 },
+      { viewport: { width: 1000, height: 500 } },
     );
   });
 

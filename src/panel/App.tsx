@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Action } from "../shared/actions";
 import { exportCapture, toJson } from "../shared/export";
@@ -6,6 +6,7 @@ import * as styles from "./App.module.css";
 import { ActionDetail } from "./components/ActionDetail";
 import { ActionList } from "./components/ActionList";
 import { type KindFilter, matchesKind, Toolbar } from "./components/Toolbar";
+import { usePersistentFlag } from "./preferences";
 import { timelineOf } from "./timeline";
 import { downloadText } from "./transfer";
 import { useCapture } from "./useCapture";
@@ -28,6 +29,27 @@ export function App() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>();
+  const [preserveLog, setPreserveLog] = usePersistentFlag(
+    "firestore-devtools/preserve-log",
+    false,
+  );
+
+  // The listener is registered once, so it reads the toggle through a ref
+  // rather than being torn down and rebuilt every time the toggle moves.
+  const preserving = useRef(preserveLog);
+  preserving.current = preserveLog;
+
+  useEffect(() => {
+    const onNavigated = () => {
+      if (preserving.current) return;
+      setSelectedId(undefined);
+      clear();
+    };
+
+    chrome.devtools.network.onNavigated.addListener(onNavigated);
+    return () =>
+      chrome.devtools.network.onNavigated.removeListener(onNavigated);
+  }, [clear]);
 
   const visible = useMemo(
     () => actions.filter((action) => matches(action, query, kind)),
@@ -50,6 +72,8 @@ export function App() {
           setSelectedId(undefined);
           clear();
         }}
+        preserveLog={preserveLog}
+        onPreserveLogChange={setPreserveLog}
         onExport={() => {
           const now = new Date();
           downloadText(

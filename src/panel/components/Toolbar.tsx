@@ -25,6 +25,8 @@ export function Toolbar({
   onKindChange,
   onClear,
   onExport,
+  preserveLog,
+  onPreserveLogChange,
   shown,
   total,
 }: {
@@ -34,6 +36,8 @@ export function Toolbar({
   onKindChange: (kind: KindFilter) => void;
   onClear: () => void;
   onExport: () => void;
+  preserveLog: boolean;
+  onPreserveLogChange: (preserveLog: boolean) => void;
   shown: number;
   total: number;
 }) {
@@ -57,6 +61,15 @@ export function Toolbar({
       >
         Export
       </button>
+
+      <label className={styles.toggle} title="Keep the capture across reloads">
+        <input
+          type="checkbox"
+          checked={preserveLog}
+          onChange={(event) => onPreserveLogChange(event.target.checked)}
+        />
+        Preserve log
+      </label>
 
       <input
         className={styles.filter}

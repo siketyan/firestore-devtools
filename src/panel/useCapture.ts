@@ -1,4 +1,5 @@
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -105,13 +106,15 @@ export function useCapture(): Capture {
     };
   }, [store]);
 
-  const clear = (): void => {
+  // Stable, because callers register it with effects that should not be torn
+  // down and rebuilt on every render.
+  const clear = useCallback((): void => {
     store.clear();
     portRef.current?.postMessage({
       type: "clear",
       tabId: chrome.devtools.inspectedWindow.tabId,
     } satisfies PanelRequest);
-  };
+  }, [store]);
 
   return { actions, clear };
 }

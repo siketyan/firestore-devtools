@@ -14,20 +14,11 @@
  *     58
  *     [[2,[{"targetChange":{"targetChangeType":"ADD"}}]]]
  */
+import { tryParseJson } from "./json";
 
 export interface WebChannelMessage {
-  /** Server-assigned ordinal, present on inbound messages only. */
-  ordinal?: number;
   payload: unknown;
   raw: string;
-}
-
-function tryParseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
 }
 
 /** Splits an outbound WebChannel POST body into its individual messages. */
@@ -112,50 +103,20 @@ export class WebChannelResponseParser {
 
 /**
  * A chunk is an array of `[ordinal, payload]` pairs; anything else is passed
- * through as a single opaque message.
+ * through as a single opaque message. The ordinal is the server's own
+ * bookkeeping, so only the payload is kept.
  */
 function flatten(chunk: unknown, raw: string): WebChannelMessage[] {
   if (!Array.isArray(chunk)) return [{ payload: chunk, raw }];
 
   const messages: WebChannelMessage[] = [];
   for (const entry of chunk) {
-    if (
-      Array.isArray(entry) &&
-      entry.length === 2 &&
-      typeof entry[0] === "number"
-    ) {
-      messages.push({
-        ordinal: entry[0],
-        payload: entry[1],
-        raw: JSON.stringify(entry[1]),
-      });
-    } else {
-      messages.push({ payload: entry, raw: JSON.stringify(entry) });
-    }
+    const payload =
+      Array.isArray(entry) && entry.length === 2 && typeof entry[0] === "number"
+        ? entry[1]
+        : entry;
+    messages.push({ payload, raw: JSON.stringify(payload) });
   }
 
   return messages;
-}
-
-/**
- * Best-effort one-word summary of a payload, used as the frame label in the
- * panel: the key of the wrapped proto (`targetChange`, `documentChange`, ...)
- * or the WebChannel control code (`c`, `noop`).
- */
-export function describePayload(payload: unknown): string | undefined {
-  if (typeof payload === "string") return payload;
-
-  if (Array.isArray(payload)) {
-    const labels = payload
-      .map((entry) => describePayload(entry))
-      .filter((label): label is string => Boolean(label));
-    return labels.length > 0 ? labels.join(", ") : undefined;
-  }
-
-  if (payload && typeof payload === "object") {
-    const keys = Object.keys(payload);
-    return keys.length > 0 ? keys.join(", ") : undefined;
-  }
-
-  return undefined;
 }

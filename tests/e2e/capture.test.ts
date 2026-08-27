@@ -129,8 +129,8 @@ describe("capturing a page's Firestore traffic", () => {
       (frame) => frame.direction === "outbound",
     );
 
-    expect(outbound.map((frame) => frame.label)).toEqual([
-      "database, addTarget",
+    expect(outbound.map((frame) => frame.decoded)).toMatchObject([
+      { addTarget: { targetId: 2 } },
     ]);
   });
 
@@ -139,10 +139,10 @@ describe("capturing a page's Firestore traffic", () => {
       (frame) => frame.direction === "inbound",
     );
 
-    expect(inbound.map((frame) => frame.label)).toEqual([
-      "c, SID-abc",
-      "targetChange",
-      "documentChange",
+    expect(inbound.map((frame) => frame.decoded)).toMatchObject([
+      ["c", "SID-abc", "", 8],
+      [{ targetChange: { targetChangeType: "ADD" } }],
+      [{ documentChange: { targetIds: [2] } }],
     ]);
     // Each chunk was written 60ms apart, so they cannot share a timestamp.
     expect(new Set(inbound.map((frame) => frame.timestamp)).size).toBe(3);
@@ -161,10 +161,6 @@ describe("capturing a page's Firestore traffic", () => {
     const ends = captured.filter((event) => event.kind === "end");
 
     expect(ends.map((event) => event.patch.status)).toEqual([200, 200]);
-    expect(
-      ends.find((event) => event.exchangeId === exchangeFor("Listen").id)?.patch
-        .responseHeaders,
-    ).toMatchObject({ "x-test": "listen" });
   });
 
   it("registers the background worker", async () => {

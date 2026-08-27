@@ -1,8 +1,7 @@
 import { useLayoutEffect, useRef } from "react";
 
 import type { Action, ActionKind } from "../../shared/actions";
-import { classNames } from "../classNames";
-import { formatDuration, formatTime } from "../format";
+import { classNames, formatDuration, formatTime } from "../format";
 import * as styles from "./ActionList.module.css";
 
 /** Read like an HTTP method: the verb first, then what it acts on. */
@@ -12,12 +11,6 @@ export const VERBS: Record<ActionKind, string> = {
   write: "WRITE",
   transaction: "TXN",
 };
-
-export interface ActionListProps {
-  actions: readonly Action[];
-  selectedId: string | undefined;
-  onSelect: (id: string) => void;
-}
 
 function statusOf(action: Action): string {
   if (action.error) return "error";
@@ -33,7 +26,15 @@ function latencyOf(action: Action): number | undefined {
 /** Within this many pixels of the bottom still counts as being at the bottom. */
 const STICK_THRESHOLD = 8;
 
-export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
+export function ActionList({
+  actions,
+  selectedId,
+  onSelect,
+}: {
+  actions: readonly Action[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
+}) {
   const listRef = useRef<HTMLDivElement>(null);
   // Follow new actions the way a log does, but only while the reader has not
   // scrolled up to look at something.

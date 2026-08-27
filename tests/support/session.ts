@@ -16,12 +16,9 @@ import type {
 export const DATABASE = "projects/demo/databases/(default)";
 export const DOCUMENTS = `${DATABASE}/documents`;
 
-const ORIGIN = "https://firestore.googleapis.com";
-const CHANNEL = `${ORIGIN}/google.firestore.v1.Firestore`;
 const START = 1_756_300_000_000;
 
 export const LISTEN_RPC: RpcInfo = {
-  service: "google.firestore.v1.Firestore",
   method: "Listen",
   transport: "webchannel",
   database: DATABASE,
@@ -30,13 +27,7 @@ export const LISTEN_RPC: RpcInfo = {
 export const WRITE_RPC: RpcInfo = { ...LISTEN_RPC, method: "Write" };
 
 export function restRpc(method: string, resource = ""): RpcInfo {
-  return {
-    service: "google.firestore.v1.Firestore",
-    method,
-    transport: "rest",
-    database: DATABASE,
-    resource,
-  };
+  return { method, transport: "rest", database: DATABASE, resource };
 }
 
 let sequence = 0;
@@ -46,7 +37,6 @@ export function frame(
   direction: Frame["direction"],
   offset: number,
   decoded: unknown,
-  label?: string,
 ): Frame {
   sequence += 1;
   const raw = JSON.stringify(decoded);
@@ -56,7 +46,6 @@ export function frame(
     timestamp: START + offset,
     raw,
     decoded,
-    label,
     byteLength: raw.length,
   };
 }
@@ -64,23 +53,15 @@ export function frame(
 export function exchange(
   id: string,
   rpc: RpcInfo,
-  url: string,
   offset: number,
   frames: Frame[],
   over: Partial<Exchange> = {},
 ): Exchange {
   return {
     id,
-    pageUrl: "https://app.example.com/",
-    url,
-    method: "POST",
     rpc,
     state: "streaming",
     startedAt: START + offset,
-    requestHeaders: { "content-type": "application/x-www-form-urlencoded" },
-    responseHeaders: { "content-type": "application/json+protobuf" },
-    bytesSent: 0,
-    bytesReceived: 0,
     frames,
     ...over,
   };
@@ -95,138 +76,98 @@ export function session(): Exchange[] {
   sequence = 0;
 
   return [
-    exchange(
-      "backchannel",
-      LISTEN_RPC,
-      `${CHANNEL}/Listen/channel?VER=8&RID=rpc&TYPE=xmlhttp`,
-      0,
-      [
-        frame("inbound", 10, ["c", "SID-abc", "", 8], "c, SID-abc"),
-        frame(
-          "inbound",
-          300,
-          [{ targetChange: { targetChangeType: "ADD", targetIds: [2] } }],
-          "targetChange",
-        ),
-        frame(
-          "inbound",
-          340,
-          [
-            {
-              documentChange: {
-                document: {
-                  name: `${DOCUMENTS}/messages/m1`,
-                  fields: {
-                    body: { stringValue: "hello" },
-                    createdAt: { timestampValue: "2026-08-27T12:59:00Z" },
-                  },
-                  createTime: "2026-08-27T12:59:00Z",
-                },
-                targetIds: [2],
+    exchange("backchannel", LISTEN_RPC, 0, [
+      frame("inbound", 10, ["c", "SID-abc", "", 8]),
+      frame("inbound", 300, [
+        { targetChange: { targetChangeType: "ADD", targetIds: [2] } },
+      ]),
+      frame("inbound", 340, [
+        {
+          documentChange: {
+            document: {
+              name: `${DOCUMENTS}/messages/m1`,
+              fields: {
+                body: { stringValue: "hello" },
+                createdAt: { timestampValue: "2026-08-27T12:59:00Z" },
               },
+              createTime: "2026-08-27T12:59:00Z",
             },
-          ],
-          "documentChange",
-        ),
-        frame(
-          "inbound",
-          360,
-          [
-            {
-              documentChange: {
-                document: {
-                  name: `${DOCUMENTS}/messages/m2`,
-                  fields: { body: { stringValue: "hi" } },
-                },
-                targetIds: [2],
-              },
+            targetIds: [2],
+          },
+        },
+      ]),
+      frame("inbound", 360, [
+        {
+          documentChange: {
+            document: {
+              name: `${DOCUMENTS}/messages/m2`,
+              fields: { body: { stringValue: "hi" } },
             },
-          ],
-          "documentChange",
-        ),
-        frame(
-          "inbound",
-          380,
-          [
-            {
-              targetChange: {
-                targetChangeType: "CURRENT",
-                targetIds: [2],
-                readTime: "2026-08-27T13:00:00Z",
-              },
+            targetIds: [2],
+          },
+        },
+      ]),
+      frame("inbound", 380, [
+        {
+          targetChange: {
+            targetChangeType: "CURRENT",
+            targetIds: [2],
+            readTime: "2026-08-27T13:00:00Z",
+          },
+        },
+      ]),
+      frame("inbound", 900, [
+        {
+          documentChange: {
+            document: {
+              name: `${DOCUMENTS}/users/u1`,
+              fields: { name: { stringValue: "Ada" } },
             },
-          ],
-          "targetChange",
-        ),
-        frame(
-          "inbound",
-          900,
-          [
-            {
-              documentChange: {
-                document: {
-                  name: `${DOCUMENTS}/users/u1`,
-                  fields: { name: { stringValue: "Ada" } },
-                },
-                targetIds: [4],
-              },
-            },
-          ],
-          "documentChange",
-        ),
-        frame(
-          "inbound",
-          950,
-          [
-            {
-              documentDelete: {
-                document: `${DOCUMENTS}/messages/m2`,
-                removedTargetIds: [2],
-              },
-            },
-          ],
-          "documentDelete",
-        ),
-      ],
-    ),
+            targetIds: [4],
+          },
+        },
+      ]),
+      frame("inbound", 950, [
+        {
+          documentDelete: {
+            document: `${DOCUMENTS}/messages/m2`,
+            removedTargetIds: [2],
+          },
+        },
+      ]),
+    ]),
 
     exchange(
       "listen-query",
       LISTEN_RPC,
-      `${CHANNEL}/Listen/channel?VER=8&RID=1`,
       100,
       [
-        frame(
-          "outbound",
-          110,
-          {
-            database: DATABASE,
-            addTarget: {
-              targetId: 2,
-              query: {
-                parent: DOCUMENTS,
-                structuredQuery: {
-                  from: [{ collectionId: "messages" }],
-                  where: {
-                    fieldFilter: {
-                      field: { fieldPath: "read" },
-                      op: "EQUAL",
-                      value: { booleanValue: false },
-                    },
+        frame("outbound", 110, {
+          database: DATABASE,
+          addTarget: {
+            targetId: 2,
+            query: {
+              parent: DOCUMENTS,
+              structuredQuery: {
+                from: [{ collectionId: "messages" }],
+                where: {
+                  fieldFilter: {
+                    field: { fieldPath: "read" },
+                    op: "EQUAL",
+                    value: { booleanValue: false },
                   },
-                  orderBy: [
-                    {
-                      field: { fieldPath: "createdAt" },
-                      direction: "DESCENDING",
-                    },
-                  ],
-                  limit: 25,
                 },
+                orderBy: [
+                  {
+                    field: { fieldPath: "createdAt" },
+                    direction: "DESCENDING",
+                  },
+                ],
+                limit: 25,
               },
             },
           },
-          "database, addTarget",
-        ),
+        }),
       ],
       { state: "complete", status: 200, finishedAt: START + 130 },
     ),
@@ -234,96 +175,64 @@ export function session(): Exchange[] {
     exchange(
       "listen-document",
       LISTEN_RPC,
-      `${CHANNEL}/Listen/channel?VER=8&RID=2`,
       200,
       [
-        frame(
-          "outbound",
-          210,
-          {
-            database: DATABASE,
-            addTarget: {
-              targetId: 4,
-              documents: { documents: [`${DOCUMENTS}/users/u1`] },
-            },
+        frame("outbound", 210, {
+          database: DATABASE,
+          addTarget: {
+            targetId: 4,
+            documents: { documents: [`${DOCUMENTS}/users/u1`] },
           },
-          "database, addTarget",
-        ),
+        }),
       ],
       { state: "complete", status: 200, finishedAt: START + 230 },
     ),
 
-    exchange("write", WRITE_RPC, `${CHANNEL}/Write/channel?VER=8`, 1000, [
-      frame("outbound", 1010, { database: DATABASE }, "database"),
-      frame(
-        "inbound",
-        1020,
-        [{ streamId: "S1", streamToken: "tok0" }],
-        "streamId, streamToken",
-      ),
-      frame(
-        "outbound",
-        1200,
-        {
-          streamToken: "tok0",
-          writes: [
-            {
-              update: {
-                name: `${DOCUMENTS}/messages/m3`,
-                fields: { body: { stringValue: "sent" } },
-              },
-            },
-          ],
-        },
-        "streamToken, writes",
-      ),
-      frame(
-        "inbound",
-        1260,
-        [
+    exchange("write", WRITE_RPC, 1000, [
+      frame("outbound", 1010, { database: DATABASE }),
+      frame("inbound", 1020, [{ streamId: "S1", streamToken: "tok0" }]),
+      frame("outbound", 1200, {
+        streamToken: "tok0",
+        writes: [
           {
-            streamToken: "tok1",
-            writeResults: [{ updateTime: "2026-08-27T13:00:02Z" }],
-            commitTime: "2026-08-27T13:00:02Z",
+            update: {
+              name: `${DOCUMENTS}/messages/m3`,
+              fields: { body: { stringValue: "sent" } },
+            },
           },
         ],
-        "writeResults",
-      ),
+      }),
+      frame("inbound", 1260, [
+        {
+          streamToken: "tok1",
+          writeResults: [{ updateTime: "2026-08-27T13:00:02Z" }],
+          commitTime: "2026-08-27T13:00:02Z",
+        },
+      ]),
     ]),
 
     exchange(
       "run-query",
       restRpc("RunQuery"),
-      `${ORIGIN}/v1/${DOCUMENTS}:runQuery`,
       1500,
       [
-        frame(
-          "outbound",
-          1500,
-          {
-            structuredQuery: {
-              from: [{ collectionId: "users" }],
-              where: {
-                fieldFilter: {
-                  field: { fieldPath: "age" },
-                  op: "GREATER_THAN_OR_EQUAL",
-                  value: { integerValue: "18" },
-                },
+        frame("outbound", 1500, {
+          structuredQuery: {
+            from: [{ collectionId: "users" }],
+            where: {
+              fieldFilter: {
+                field: { fieldPath: "age" },
+                op: "GREATER_THAN_OR_EQUAL",
+                value: { integerValue: "18" },
               },
-              limit: 10,
             },
+            limit: 10,
           },
-          "structuredQuery",
-        ),
-        frame(
-          "inbound",
-          1580,
-          [
-            { document: { name: `${DOCUMENTS}/users/u1` } },
-            { document: { name: `${DOCUMENTS}/users/u2` } },
-          ],
-          "document",
-        ),
+        }),
+        frame("inbound", 1580, [
+          { document: { name: `${DOCUMENTS}/users/u1` } },
+          { document: { name: `${DOCUMENTS}/users/u2` } },
+        ]),
       ],
       { state: "complete", status: 200, finishedAt: START + 1590 },
     ),
@@ -331,28 +240,13 @@ export function session(): Exchange[] {
     exchange(
       "get-document",
       restRpc("GetDocument", "users/u9"),
-      `${ORIGIN}/v1/${DOCUMENTS}/users/u9`,
       1700,
       [
-        frame(
-          "inbound",
-          1740,
-          {
-            error: {
-              code: 403,
-              message: "Missing or insufficient permissions.",
-            },
-          },
-          "error",
-        ),
+        frame("inbound", 1740, {
+          error: { code: 403, message: "Missing or insufficient permissions." },
+        }),
       ],
-      {
-        method: "GET",
-        state: "failed",
-        status: 403,
-        statusText: "Forbidden",
-        finishedAt: START + 1745,
-      },
+      { state: "failed", status: 403, finishedAt: START + 1745 },
     ),
   ];
 }
@@ -364,16 +258,7 @@ export function session(): Exchange[] {
 export function events(exchanges = session()): CaptureEvent[] {
   const starts = exchanges.map((it) => ({
     kind: "start" as const,
-    exchange: {
-      id: it.id,
-      pageUrl: it.pageUrl,
-      url: it.url,
-      method: it.method,
-      rpc: it.rpc,
-      startedAt: it.startedAt,
-      requestHeaders: it.requestHeaders,
-      bytesSent: it.bytesSent,
-    },
+    exchange: { id: it.id, rpc: it.rpc, startedAt: it.startedAt },
   }));
 
   const frames = exchanges
@@ -391,13 +276,7 @@ export function events(exchanges = session()): CaptureEvent[] {
     .map((it) => ({
       kind: "end" as const,
       exchangeId: it.id,
-      patch: {
-        status: it.status,
-        statusText: it.statusText,
-        finishedAt: it.finishedAt,
-        responseHeaders: it.responseHeaders,
-        bytesReceived: it.bytesReceived,
-      },
+      patch: { status: it.status, finishedAt: it.finishedAt },
     }));
 
   return [...starts, ...frames, ...ends];

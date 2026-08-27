@@ -1,5 +1,5 @@
 import type { ActionKind } from "../../shared/actions";
-import { classNames } from "../classNames";
+import { classNames } from "../format";
 import * as styles from "./Toolbar.module.css";
 
 export type KindFilter = "all" | ActionKind;
@@ -18,16 +18,6 @@ export function matchesKind(kind: ActionKind, filter: KindFilter): boolean {
   return filter === "all" || kind === filter;
 }
 
-export interface ToolbarProps {
-  query: string;
-  onQueryChange: (query: string) => void;
-  kind: KindFilter;
-  onKindChange: (kind: KindFilter) => void;
-  onClear: () => void;
-  shown: number;
-  total: number;
-}
-
 export function Toolbar({
   query,
   onQueryChange,
@@ -36,7 +26,15 @@ export function Toolbar({
   onClear,
   shown,
   total,
-}: ToolbarProps) {
+}: {
+  query: string;
+  onQueryChange: (query: string) => void;
+  kind: KindFilter;
+  onKindChange: (kind: KindFilter) => void;
+  onClear: () => void;
+  shown: number;
+  total: number;
+}) {
   return (
     <div className={styles.toolbar}>
       <button

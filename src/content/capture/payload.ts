@@ -1,13 +1,13 @@
 /**
  * Turns the raw bodies seen on the wire into the frames the panel displays.
  */
+import { tryParseJson } from "../../shared/json";
 import type { RpcInfo } from "../../shared/types";
 import {
-  describePayload,
   parseWebChannelRequest,
   WebChannelResponseParser,
 } from "../../shared/webchannel";
-import { byteLengthOf, emitFrame } from "./channel";
+import { emitFrame } from "./channel";
 
 /** Turns a request body into text, when it is something we can read cheaply. */
 export function bodyToText(body: unknown): string | undefined {
@@ -19,14 +19,6 @@ export function bodyToText(body: unknown): string | undefined {
   }
   if (body instanceof ArrayBuffer) return new TextDecoder().decode(body);
   return undefined;
-}
-
-export function tryParseJson(text: string): unknown {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return undefined;
-  }
 }
 
 /**
@@ -44,20 +36,13 @@ export function emitRequestFrames(
     const messages = parseWebChannelRequest(body);
     if (messages.length > 0) {
       for (const message of messages) {
-        emitFrame(
-          exchangeId,
-          "outbound",
-          message.raw,
-          message.payload,
-          describePayload(message.payload),
-        );
+        emitFrame(exchangeId, "outbound", message.raw, message.payload);
       }
       return;
     }
   }
 
-  const decoded = tryParseJson(body);
-  emitFrame(exchangeId, "outbound", body, decoded, describePayload(decoded));
+  emitFrame(exchangeId, "outbound", body, tryParseJson(body));
 }
 
 export interface ResponseSink {
@@ -65,8 +50,8 @@ export interface ResponseSink {
   push(chunk: string): void;
   /** Feeds the whole response body seen so far. */
   replace(fullText: string): void;
-  /** Flushes the buffered unary body as a single frame, returning its size. */
-  finish(): number;
+  /** Flushes the buffered unary body as a single frame. */
+  finish(): void;
 }
 
 /** Reads response text and emits whatever frames it completes. */
@@ -79,13 +64,7 @@ export function createResponseSink(
 
   const emitStreamed = (messages: ReturnType<typeof parser.push>): void => {
     for (const message of messages) {
-      emitFrame(
-        exchangeId,
-        "inbound",
-        message.raw,
-        message.payload,
-        describePayload(message.payload),
-      );
+      emitFrame(exchangeId, "inbound", message.raw, message.payload);
     }
   };
 
@@ -102,16 +81,8 @@ export function createResponseSink(
     },
 
     finish() {
-      if (rpc.transport === "webchannel" || !plainText) return 0;
-      const decoded = tryParseJson(plainText);
-      emitFrame(
-        exchangeId,
-        "inbound",
-        plainText,
-        decoded,
-        describePayload(decoded),
-      );
-      return byteLengthOf(plainText);
+      if (rpc.transport === "webchannel" || !plainText) return;
+      emitFrame(exchangeId, "inbound", plainText, tryParseJson(plainText));
     },
   };
 }

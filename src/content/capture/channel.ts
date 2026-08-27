@@ -23,7 +23,7 @@ export function nextId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}-${sequence}`;
 }
 
-export function byteLengthOf(text: string): number {
+function byteLengthOf(text: string): number {
   return encoder.encode(text).length;
 }
 
@@ -43,7 +43,6 @@ export function emitFrame(
   direction: Direction,
   raw: string,
   decoded?: unknown,
-  label?: string,
 ): void {
   const frame: Frame = {
     id: nextId("frame"),
@@ -51,7 +50,6 @@ export function emitFrame(
     timestamp: Date.now(),
     raw,
     decoded,
-    label,
     byteLength: byteLengthOf(raw),
   };
   emit({ kind: "frame", exchangeId, frame });

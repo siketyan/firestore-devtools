@@ -81,13 +81,6 @@
     overflow: auto;
   }
 
-  .heading {
-    margin: 12px 8px 4px;
-    color: var(--text-dim);
-    font-size: 11px;
-    text-transform: uppercase;
-  }
-
   .empty {
     padding: 12px;
     color: var(--text-dim);
@@ -95,30 +88,6 @@
 
   .payload {
     padding: 6px 8px;
-  }
-}
-
-.definitions {
-  margin: 0;
-  padding: 4px 8px;
-
-  .row {
-    display: flex;
-    gap: 8px;
-    padding: 2px 0;
-    border-bottom: 1px solid var(--border);
-  }
-
-  dt {
-    flex: 0 0 104px;
-    color: var(--text-dim);
-  }
-
-  dd {
-    flex: 1;
-    margin: 0;
-    font-family: var(--font-mono);
-    overflow-wrap: anywhere;
   }
 }
 

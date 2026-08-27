@@ -1,15 +1,16 @@
 import { useState } from "react";
 
-import { classNames } from "../classNames";
+import { classNames } from "../format";
 import * as styles from "./JsonView.module.css";
 
-export interface JsonViewProps {
+export function JsonView({
+  value,
+  defaultExpandedDepth = 2,
+}: {
   value: unknown;
   /** Depth up to which nodes start expanded. */
   defaultExpandedDepth?: number;
-}
-
-export function JsonView({ value, defaultExpandedDepth = 2 }: JsonViewProps) {
+}) {
   return (
     <div className={styles.json}>
       <JsonNode

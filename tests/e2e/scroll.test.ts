@@ -6,8 +6,6 @@ import { DOCUMENTS, exchange, frame, restRpc } from "../support/session";
 import { launch } from "./support/browser";
 import { openPanel, type Panel } from "./support/panel";
 
-const ORIGIN = "https://firestore.googleapis.com";
-
 /** A completed document read, which is the smallest thing that makes a row. */
 function read(index: number): Exchange {
   const path = `users/u${index}`;
@@ -15,7 +13,6 @@ function read(index: number): Exchange {
   return exchange(
     `read-${index}`,
     restRpc("GetDocument", path),
-    `${ORIGIN}/v1/${DOCUMENTS}/${path}`,
     index * 10,
     [
       frame("inbound", index * 10 + 4, {
@@ -23,7 +20,7 @@ function read(index: number): Exchange {
         fields: {},
       }),
     ],
-    { method: "GET", state: "complete", status: 200, finishedAt: 0 },
+    { state: "complete", status: 200, finishedAt: 0 },
   );
 }
 
@@ -36,16 +33,7 @@ function readEvents(index: number): CaptureEvent[] {
   return [
     {
       kind: "start",
-      exchange: {
-        id: rest.id,
-        pageUrl: rest.pageUrl,
-        url: rest.url,
-        method: rest.method,
-        rpc: rest.rpc,
-        startedAt: rest.startedAt,
-        requestHeaders: rest.requestHeaders,
-        bytesSent: rest.bytesSent,
-      },
+      exchange: { id: rest.id, rpc: rest.rpc, startedAt: rest.startedAt },
     },
     { kind: "frame", exchangeId: rest.id, frame: first },
     { kind: "end", exchangeId: rest.id, patch: { status: 200 } },

@@ -6,8 +6,7 @@ import {
   requestPayload,
   responseItems,
 } from "../../shared/payloads";
-import { classNames } from "../classNames";
-import { formatBytes, formatTime } from "../format";
+import { classNames, formatBytes, formatTime } from "../format";
 import * as styles from "./ActionDetail.module.css";
 import { VERBS } from "./ActionList";
 import { JsonView } from "./JsonView";
@@ -19,12 +18,13 @@ const TABS: Array<{ value: Tab; label: string }> = [
   { value: "responses", label: "Responses" },
 ];
 
-export interface ActionDetailProps {
+export function ActionDetail({
+  action,
+  onClose,
+}: {
   action: Action;
   onClose: () => void;
-}
-
-export function ActionDetail({ action, onClose }: ActionDetailProps) {
+}) {
   const [tab, setTab] = useState<Tab>("responses");
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>();
 

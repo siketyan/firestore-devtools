@@ -38,7 +38,6 @@ export interface Action {
   target: string;
   /** The query clauses, the write verbs — whatever narrows down the target. */
   detail?: string;
-  database?: string;
   /** The WebChannel target id, for the actions that have one. */
   targetId?: number;
   state: ActionState;
@@ -54,13 +53,10 @@ export interface Action {
   responses: Frame[];
   /** Documents the action has seen come back. */
   documentCount: number;
-  byteLength: number;
 }
 
-export interface ActionIndexOptions {
-  maxActions?: number;
-  maxResponsesPerAction?: number;
-}
+/** Actions, and responses of one action, are dropped past this count. */
+const MAX = 500;
 
 /** One `{exchange, frame}` pair, which is all the correlator ever consumes. */
 interface Message {
@@ -69,8 +65,6 @@ interface Message {
 }
 
 export class ActionIndex {
-  readonly #maxActions: number;
-  readonly #maxResponses: number;
   readonly #order: Action[] = [];
   readonly #byId = new Map<string, Action>();
   /** `${database}#${targetId}` -> action id, for the targets still open. */
@@ -81,11 +75,6 @@ export class ActionIndex {
   readonly #byExchange = new Map<string, string>();
   #snapshot: readonly Action[] = [];
   #sequence = 0;
-
-  constructor(options: ActionIndexOptions = {}) {
-    this.#maxActions = options.maxActions ?? 500;
-    this.#maxResponses = options.maxResponsesPerAction ?? 500;
-  }
 
   get snapshot(): readonly Action[] {
     return this.#snapshot;
@@ -176,13 +165,7 @@ export class ActionIndex {
 
       if (addTarget) {
         const targetId = asNumber(addTarget.targetId);
-        const action = this.#openTarget(
-          exchange,
-          frame,
-          database,
-          targetId,
-          addTarget,
-        );
+        const action = this.#openTarget(frame, database, targetId, addTarget);
         this.#attach(action, exchange, frame);
         action.request = frame;
         return;
@@ -289,7 +272,6 @@ export class ActionIndex {
   }
 
   #openTarget(
-    exchange: Exchange,
     frame: Frame,
     database: string,
     targetId: number | undefined,
@@ -305,7 +287,6 @@ export class ActionIndex {
 
     const action = this.#create({
       ...describeTarget(addTarget),
-      database: exchange.rpc.database,
       targetId,
       startedAt: frame.timestamp,
     });
@@ -354,7 +335,6 @@ export class ActionIndex {
       const action = this.#create({
         kind: "write",
         ...describeWrites(writes),
-        database: exchange.rpc.database,
         startedAt: frame.timestamp,
       });
       this.#attach(action, exchange, frame);
@@ -412,7 +392,6 @@ export class ActionIndex {
 
     const action = this.#create({
       ...describeRest(exchange, request),
-      database: exchange.rpc.database,
       startedAt: exchange.startedAt,
     });
     this.#byExchange.set(exchange.id, action.id);
@@ -424,12 +403,7 @@ export class ActionIndex {
   #create(
     seed: Omit<
       Action,
-      | "id"
-      | "state"
-      | "exchangeIds"
-      | "responses"
-      | "documentCount"
-      | "byteLength"
+      "id" | "state" | "exchangeIds" | "responses" | "documentCount"
     >,
   ): Action {
     this.#sequence += 1;
@@ -440,13 +414,12 @@ export class ActionIndex {
       exchangeIds: [],
       responses: [],
       documentCount: 0,
-      byteLength: 0,
     };
 
     this.#order.push(action);
     this.#byId.set(action.id, action);
 
-    while (this.#order.length > this.#maxActions) {
+    while (this.#order.length > MAX) {
       const evicted = this.#order.shift();
       if (evicted) this.#forget(evicted);
     }
@@ -474,13 +447,12 @@ export class ActionIndex {
     if (!action.exchangeIds.includes(exchange.id)) {
       action.exchangeIds.push(exchange.id);
     }
-    action.byteLength += frame.byteLength;
 
     if (frame.direction === "outbound") return;
 
     action.responses.push(frame);
-    if (action.responses.length > this.#maxResponses) {
-      action.responses.splice(0, action.responses.length - this.#maxResponses);
+    if (action.responses.length > MAX) {
+      action.responses.splice(0, action.responses.length - MAX);
     }
     if (action.state === "pending") action.state = "active";
   }

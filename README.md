@@ -162,7 +162,8 @@ backchannel, a write stream, a one-shot query and a document read that was
 refused — which is also the fixture the panel tests render.
 
 The e2e tests need a browser (`pnpm exec playwright install chromium`, or
-`CHROMIUM_PATH=/path/to/chrome` when the box already has one). They build the
+`CHROMIUM_PATH=/path/to/chrome` when the box already has one — it has to be a
+full Chromium, since `chrome-headless-shell` cannot load extensions). They build the
 extension first and drive *that*: one suite loads it into Chromium against a
 stand-in for `firestore.googleapis.com` and reads what the interceptor
 captured, the others open the real panel and check what it says.

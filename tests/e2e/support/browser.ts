@@ -22,10 +22,13 @@ export async function launch(): Promise<Browser> {
 
 /** A browser with the built extension loaded, which needs a real profile. */
 export async function launchWithExtension(): Promise<BrowserContext> {
-  return chromium.launchPersistentContext(
+  const context = await chromium.launchPersistentContext(
     mkdtempSync(join(tmpdir(), "fsdt-")),
     {
-      executablePath,
+      // `chrome-headless-shell`, which is what Playwright launches by default,
+      // cannot load extensions — it takes the flags below and ignores them.
+      // The `chromium` channel is the full build, which can.
+      ...(executablePath ? { executablePath } : { channel: "chromium" }),
       args: [
         `--disable-extensions-except=${DIST}`,
         `--load-extension=${DIST}`,
@@ -33,6 +36,23 @@ export async function launchWithExtension(): Promise<BrowserContext> {
       ],
     },
   );
+
+  // Without this, an extension that never loaded shows up as whatever times
+  // out first, thirty seconds later, rather than as itself.
+  const worker =
+    context.serviceWorkers()[0] ??
+    (await context
+      .waitForEvent("serviceworker", { timeout: 15_000 })
+      .catch(() => undefined));
+
+  if (!worker) {
+    await context.close();
+    throw new Error(
+      "the extension's background worker never started — is this a browser that loads extensions?",
+    );
+  }
+
+  return context;
 }
 
 const CONTENT_TYPES: Record<string, string> = {

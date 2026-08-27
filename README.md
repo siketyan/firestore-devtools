@@ -143,11 +143,29 @@ Other commands:
 pnpm build          # production build into dist/<browser>
 pnpm build:firefox  # ...for a specific browser
 pnpm preview        # load a production build in a browser
-pnpm typecheck      # tsc --noEmit
+pnpm typecheck      # tsc --noEmit, over src and tests
 pnpm lint           # biome check
 pnpm lint:fix       # biome check --write
 pnpm format         # biome format --write
 ```
+
+## Tests
+
+```sh
+pnpm test           # everything
+pnpm test:unit      # the decoders, the correlator, the payload extraction
+pnpm test:e2e       # the built extension, in a real browser
+```
+
+The unit tests run against a scripted session — two listeners sharing one
+backchannel, a write stream, a one-shot query and a document read that was
+refused — which is also the fixture the panel tests render.
+
+The e2e tests need a browser (`pnpm exec playwright install chromium`, or
+`CHROMIUM_PATH=/path/to/chrome` when the box already has one). They build the
+extension first and drive *that*: one suite loads it into Chromium against a
+stand-in for `firestore.googleapis.com` and reads what the interceptor
+captured, the others open the real panel and check what it says.
 
 Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
 `savePrefix: ''` so they stay that way.
@@ -163,4 +181,3 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
 - Copy as JSON, and export the capture.
 - Firefox: `world: "MAIN"` content scripts need Firefox 128+; verify the
   WebChannel path there.
-- Automated tests for the decoders, the correlator and the panel.

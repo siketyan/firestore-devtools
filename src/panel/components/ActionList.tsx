@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef } from "react";
 
 import type { Action, ActionKind } from "../../shared/actions";
 import { classNames, formatDuration, formatTime } from "../format";
+import { barFor, type Timeline } from "../timeline";
 import * as styles from "./ActionList.module.css";
 
 /** Read like an HTTP method: the verb first, then what it acts on. */
@@ -28,10 +29,12 @@ const STICK_THRESHOLD = 8;
 
 export function ActionList({
   actions,
+  timeline,
   selectedId,
   onSelect,
 }: {
   actions: readonly Action[];
+  timeline: Timeline;
   selectedId: string | undefined;
   onSelect: (id: string) => void;
 }) {
@@ -81,6 +84,7 @@ export function ActionList({
             <th>Docs</th>
             <th>Latency</th>
             <th>Started</th>
+            <th className={styles.timelineHeading}>Timeline</th>
           </tr>
         </thead>
         <tbody>
@@ -100,10 +104,41 @@ export function ActionList({
               <td>{action.documentCount || "—"}</td>
               <td>{formatDuration(latencyOf(action))}</td>
               <td>{formatTime(action.startedAt)}</td>
+              <td className={styles.timeline}>
+                <Waterfall action={action} timeline={timeline} />
+              </td>
             </tr>
           ))}
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** One action's span, drawn against the whole capture. */
+function Waterfall({
+  action,
+  timeline,
+}: {
+  action: Action;
+  timeline: Timeline;
+}) {
+  const { left, width, waited } = barFor(action, timeline);
+  const latency = latencyOf(action);
+
+  return (
+    <span className={styles.track}>
+      <span
+        className={styles.bar}
+        style={{ left: `${left}%`, width: `${width}%` }}
+        title={
+          latency == null
+            ? "no response yet"
+            : `${formatDuration(latency)} to the first response`
+        }
+      >
+        <span className={styles.received} style={{ left: `${waited}%` }} />
+      </span>
+    </span>
   );
 }

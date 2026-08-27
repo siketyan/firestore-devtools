@@ -10,6 +10,7 @@ import {
 import type { Action } from "../shared/actions";
 import { ExchangeStore } from "../shared/store";
 import {
+  type Exchange,
   PANEL_PORT_NAME,
   type PanelRequest,
   type PanelResponse,
@@ -18,6 +19,8 @@ import {
 export interface Capture {
   /** The traffic seen as the actions that produced it. */
   actions: readonly Action[];
+  /** The same traffic as it went over the wire. */
+  exchanges: readonly Exchange[];
   clear: () => void;
 }
 
@@ -55,7 +58,7 @@ export function useCapture(): Capture {
   const subscribe = useMemo(() => batchByFrame(store.subscribe), [store]);
   // Subscribing to the exchange snapshot is enough: the store rebuilds both
   // projections in the same mutation.
-  useSyncExternalStore(subscribe, store.getSnapshot);
+  const exchanges = useSyncExternalStore(subscribe, store.getSnapshot);
   const actions = store.getActions();
 
   useEffect(() => {
@@ -116,5 +119,5 @@ export function useCapture(): Capture {
     } satisfies PanelRequest);
   }, [store]);
 
-  return { actions, clear };
+  return { actions, exchanges, clear };
 }

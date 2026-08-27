@@ -43,7 +43,10 @@ another.
 matched to their requests first-in-first-out.
 
 Messages that belong to no action — channel handshakes, `noop` keepalives —
-are dropped. They are transport bookkeeping, not something anyone asked for.
+are dropped from the action projection. They are transport bookkeeping, not
+something anyone asked for; the Transport view is where you go when the
+channel itself is the thing misbehaving, and it lists the exchanges and their
+frames untouched.
 
 ### Actions, not RPCs
 

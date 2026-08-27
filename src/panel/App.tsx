@@ -2,10 +2,19 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { Action } from "../shared/actions";
 import { exportCapture, toJson } from "../shared/export";
+import type { Exchange } from "../shared/types";
 import * as styles from "./App.module.css";
 import { ActionDetail } from "./components/ActionDetail";
 import { ActionList } from "./components/ActionList";
-import { type KindFilter, matchesKind, Toolbar } from "./components/Toolbar";
+import { ExchangeDetail } from "./components/ExchangeDetail";
+import { ExchangeList } from "./components/ExchangeList";
+import {
+  type KindFilter,
+  matchesKind,
+  Toolbar,
+  type View,
+} from "./components/Toolbar";
+import { describeFrame } from "./frames";
 import { usePersistentFlag } from "./preferences";
 import { timelineOf } from "./timeline";
 import { downloadText } from "./transfer";
@@ -24,8 +33,25 @@ function matches(action: Action, query: string, kind: KindFilter): boolean {
   );
 }
 
+/** The raw view searches the wire, because that is what it is showing. */
+function exchangeMatches(exchange: Exchange, query: string): boolean {
+  if (!query) return true;
+
+  const needle = query.toLowerCase();
+  return (
+    exchange.rpc.method.toLowerCase().includes(needle) ||
+    (exchange.rpc.database ?? "").toLowerCase().includes(needle) ||
+    exchange.frames.some(
+      (frame) =>
+        frame.raw.toLowerCase().includes(needle) ||
+        describeFrame(frame).toLowerCase().includes(needle),
+    )
+  );
+}
+
 export function App() {
-  const { actions, clear } = useCapture();
+  const { actions, exchanges, clear } = useCapture();
+  const [view, setView] = useState<View>("actions");
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -59,11 +85,28 @@ export function App() {
   // Drawn against the whole capture, so filtering does not rescale the bars.
   const timeline = useMemo(() => timelineOf(actions), [actions]);
 
-  const selected = visible.find((action) => action.id === selectedId);
+  const visibleExchanges = useMemo(
+    () => exchanges.filter((exchange) => exchangeMatches(exchange, query)),
+    [exchanges, query],
+  );
+
+  const selectedAction = visible.find((action) => action.id === selectedId);
+  const selectedExchange = visibleExchanges.find(
+    (exchange) => exchange.id === selectedId,
+  );
+
+  const showing = view === "actions" ? visible : visibleExchanges;
+  const captured = view === "actions" ? actions : exchanges;
 
   return (
     <div className={styles.app}>
       <Toolbar
+        view={view}
+        onViewChange={(next) => {
+          // The two lists have different ids; a selection cannot survive.
+          setSelectedId(undefined);
+          setView(next);
+        }}
         query={query}
         onQueryChange={setQuery}
         kind={kind}
@@ -81,23 +124,41 @@ export function App() {
             toJson(exportCapture(actions, now.getTime())),
           );
         }}
-        shown={visible.length}
-        total={actions.length}
+        shown={showing.length}
+        total={captured.length}
       />
 
       <div className={styles.body}>
-        <ActionList
-          actions={visible}
-          timeline={timeline}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-        />
-        {selected ? (
-          <ActionDetail
-            action={selected}
-            onClose={() => setSelectedId(undefined)}
-          />
-        ) : null}
+        {view === "actions" ? (
+          <>
+            <ActionList
+              actions={visible}
+              timeline={timeline}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+            {selectedAction ? (
+              <ActionDetail
+                action={selectedAction}
+                onClose={() => setSelectedId(undefined)}
+              />
+            ) : null}
+          </>
+        ) : (
+          <>
+            <ExchangeList
+              exchanges={visibleExchanges}
+              selectedId={selectedId}
+              onSelect={setSelectedId}
+            />
+            {selectedExchange ? (
+              <ExchangeDetail
+                exchange={selectedExchange}
+                onClose={() => setSelectedId(undefined)}
+              />
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );

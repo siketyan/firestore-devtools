@@ -17,8 +17,9 @@ neither of them is named after anything you wrote.
   />
 </picture>
 
-> **Status: early.** The capture pipeline, the correlator and the panel work
-> end to end; see [Roadmap](#roadmap) for what is still missing.
+> **Status: early**, but complete enough to use: it captures both transports,
+> puts each request back together with its responses, and shows them as the
+> queries, reads, listeners and writes the app actually made.
 
 ## Getting started
 
@@ -81,8 +82,3 @@ interceptor captured, the others open the real panel and check what it says.
 
 [`CLAUDE.md`](CLAUDE.md) has the architecture, the Firestore wire formats the
 extension decodes, and the conventions this repository holds to.
-
-## Roadmap
-
-- A raw transport view, for debugging the channel itself rather than the
-  actions riding on it — the handshakes and keepalives the action view drops.

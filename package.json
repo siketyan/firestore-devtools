@@ -1,0 +1,30 @@
+{
+  "private": true,
+  "name": "firestore-devtools",
+  "description": "Inspect Firestore gRPC/WebChannel traffic from the browser DevTools, like the Network tab.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "extension dev",
+    "start": "extension start",
+    "build": "extension build",
+    "preview": "extension preview",
+    "build:chrome": "extension build --browser chrome",
+    "build:firefox": "extension build --browser firefox",
+    "build:edge": "extension build --browser edge",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.1.29",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "extension": "^4.1.5",
+    "typescript": "^5.9.3"
+  },
+  "packageManager": "npm@10.9.7"
+}

@@ -1,0 +1,400 @@
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f5f6f7;
+  --bg-hover: #eceef0;
+  --bg-selected: #d7e7fb;
+  --border: #d9dbdd;
+  --text: #202124;
+  --text-dim: #6a6f75;
+  --accent: #1a73e8;
+  --outbound: #1a73e8;
+  --inbound: #0f9d58;
+  --error: #d93025;
+
+  --font-ui: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #202124;
+    --bg-alt: #292a2d;
+    --bg-hover: #35363a;
+    --bg-selected: #1f3a5f;
+    --border: #3c4043;
+    --text: #e8eaed;
+    --text-dim: #9aa0a6;
+    --accent: #8ab4f8;
+    --outbound: #8ab4f8;
+    --inbound: #81c995;
+    --error: #f28b82;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12px;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app__body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ------------------------------------------------------------- toolbar */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
+.toolbar__button,
+.toolbar__chip {
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.toolbar__button:hover,
+.toolbar__chip:hover {
+  background: var(--bg-hover);
+}
+
+.toolbar__chip--active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.toolbar__group {
+  display: flex;
+  gap: 4px;
+}
+
+.toolbar__filter {
+  flex: 1;
+  min-width: 120px;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.toolbar__count {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- list */
+
+.list {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.list--empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.list__hint code {
+  font-family: var(--font-mono);
+}
+
+.list__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.list__table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--text-dim);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.list__table td {
+  padding: 3px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.list__row {
+  cursor: pointer;
+}
+
+.list__row:hover {
+  background: var(--bg-hover);
+}
+
+.list__row--selected,
+.list__row--selected:hover {
+  background: var(--bg-selected);
+}
+
+.list__row--failed td {
+  color: var(--error);
+}
+
+.list__rpc {
+  display: flex;
+  flex-direction: column;
+  max-width: 420px;
+}
+
+.list__method {
+  font-weight: 600;
+}
+
+.list__database {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------------- detail */
+
+.detail {
+  display: flex;
+  flex: 0 0 46%;
+  flex-direction: column;
+  min-width: 320px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.detail__header {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
+.detail__tabs {
+  display: flex;
+  flex: 1;
+}
+
+.detail__tab {
+  padding: 6px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  cursor: pointer;
+}
+
+.detail__tab--active {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.detail__close {
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.detail__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.detail__heading {
+  margin: 12px 8px 4px;
+  color: var(--text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.detail__empty {
+  padding: 12px;
+  color: var(--text-dim);
+}
+
+.definitions {
+  margin: 0;
+  padding: 4px 8px;
+}
+
+.definitions__row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.definitions dt {
+  flex: 0 0 96px;
+  color: var(--text-dim);
+}
+
+.definitions dd {
+  flex: 1;
+  margin: 0;
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* -------------------------------------------------------------- frames */
+
+.frames {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.frames__list {
+  flex: 0 0 45%;
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  border-bottom: 1px solid var(--border);
+  list-style: none;
+}
+
+.frames__item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.frames__item:hover {
+  background: var(--bg-hover);
+}
+
+.frames__item--selected,
+.frames__item--selected:hover {
+  background: var(--bg-selected);
+}
+
+.frames__item--outbound .frames__arrow {
+  color: var(--outbound);
+}
+
+.frames__item--inbound .frames__arrow {
+  color: var(--inbound);
+}
+
+.frames__label {
+  flex: 1;
+  overflow: hidden;
+  font-family: var(--font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.frames__meta {
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.frames__payload {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 6px 8px;
+}
+
+.frames__raw {
+  margin: 0;
+  font-family: var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- json */
+
+.json {
+  font-family: var(--font-mono);
+  line-height: 1.5;
+}
+
+.json__row {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.json__row--toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.json__caret {
+  display: inline-block;
+  width: 12px;
+  color: var(--text-dim);
+}
+
+.json__key {
+  color: var(--accent);
+}
+
+.json__summary {
+  color: var(--text-dim);
+}
+
+.json__value--string {
+  color: var(--inbound);
+}
+
+.json__value--number,
+.json__value--boolean {
+  color: var(--outbound);
+}
+
+.json__value--null,
+.json__value--undefined {
+  color: var(--text-dim);
+}

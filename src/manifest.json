@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/chrome-manifest.json",
+  "manifest_version": 3,
+  "name": "Firestore DevTools",
+  "version": "0.1.0",
+  "description": "Inspect the Firestore gRPC/WebChannel traffic of a web app from a DevTools panel, like the Network tab.",
+  "icons": {
+    "16": "images/icon.png",
+    "32": "images/icon.png",
+    "48": "images/icon.png",
+    "64": "images/icon.png",
+    "128": "images/icon.png"
+  },
+  "devtools_page": "devtools/index.html",
+  "background": {
+    "chromium:service_worker": "background/index.ts",
+    "firefox:scripts": ["background/index.ts"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/interceptor.ts"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/bridge.ts"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ]
+}

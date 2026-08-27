@@ -97,6 +97,10 @@ page realm            isolated realm        extension              devtools
   the responses, which is what the detail pane shows. Neither view should ever
   render the envelope a payload arrived in.
 - **`actions.ts`** is the correlator above, and the projection the panel lists.
+- **`export.ts`** turns actions into what leaves the panel — the clipboard, a
+  file — which is the same payloads the detail pane shows, with timestamps as
+  ISO strings. Bump `EXPORT_VERSION` when that shape changes in a way a reader
+  would notice.
 - **`store.ts`** replays capture events into both projections. The background
   worker leaves the action one switched off — nothing there reads it.
 

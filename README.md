@@ -88,4 +88,3 @@ extension decodes, and the conventions this repository holds to.
 - A raw transport view, for debugging the channel itself rather than the
   actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.
-- Copy as JSON, and export the capture.

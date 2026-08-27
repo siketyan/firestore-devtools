@@ -1,12 +1,14 @@
 import { useState } from "react";
 
 import type { Action } from "../../shared/actions";
+import { exportAction, toJson } from "../../shared/export";
 import {
   type ResponseItem,
   requestPayload,
   responseItems,
 } from "../../shared/payloads";
 import { classNames, formatBytes, formatTime } from "../format";
+import { copyText } from "../transfer";
 import * as styles from "./ActionDetail.module.css";
 import { VERBS } from "./ActionList";
 import { JsonView } from "./JsonView";
@@ -27,6 +29,14 @@ export function ActionDetail({
 }) {
   const [tab, setTab] = useState<Tab>("responses");
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>();
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    const done = await copyText(toJson(exportAction(action)));
+    if (!done) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
 
   // Cheap enough to derive on every render, and the store only publishes once
   // per animation frame.
@@ -44,6 +54,14 @@ export function ActionDetail({
             <span className={styles.query}>{action.detail}</span>
           ) : null}
         </span>
+        <button
+          type="button"
+          className={styles.copy}
+          onClick={copy}
+          title="Copy this action as JSON"
+        >
+          {copied ? "Copied" : "Copy"}
+        </button>
         <button
           type="button"
           className={styles.close}

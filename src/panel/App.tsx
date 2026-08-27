@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 
 import type { Action } from "../shared/actions";
+import { exportCapture, toJson } from "../shared/export";
 import * as styles from "./App.module.css";
 import { ActionDetail } from "./components/ActionDetail";
 import { ActionList } from "./components/ActionList";
 import { type KindFilter, matchesKind, Toolbar } from "./components/Toolbar";
+import { downloadText } from "./transfer";
 import { useCapture } from "./useCapture";
 
 function matches(action: Action, query: string, kind: KindFilter): boolean {
@@ -43,6 +45,13 @@ export function App() {
         onClear={() => {
           setSelectedId(undefined);
           clear();
+        }}
+        onExport={() => {
+          const now = new Date();
+          downloadText(
+            `firestore-${now.toISOString().replace(/[:.]/g, "-")}.json`,
+            toJson(exportCapture(actions, now.getTime())),
+          );
         }}
         shown={visible.length}
         total={actions.length}

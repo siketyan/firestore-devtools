@@ -65,6 +65,22 @@
     }
   }
 
+  .copy {
+    align-self: flex-start;
+    padding: 1px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
   .close {
     align-self: flex-start;
     padding: 0 4px;

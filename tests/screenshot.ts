@@ -3,12 +3,16 @@
  * tests render. Not a test — run it with `pnpm screenshot`.
  */
 import { mkdir } from "node:fs/promises";
-
 import { launch } from "./e2e/support/browser";
+import build from "./e2e/support/build";
 import { openPanel } from "./e2e/support/panel";
 import { session } from "./support/session";
 
 const OUTPUT = new URL("../docs/", import.meta.url).pathname;
+
+// The panel is served out of `dist/`, so without this the images would show
+// whatever was built last rather than what is in the tree.
+await build();
 
 const browser = await launch();
 await mkdir(OUTPUT, { recursive: true });

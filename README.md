@@ -85,8 +85,6 @@ extension decodes, and the conventions this repository holds to.
 ## Roadmap
 
 - Persist across page navigation, with a "preserve log" toggle.
-- Unwrap the `Value` wrappers in document bodies, so a document reads the way
-  the app sees it rather than as `{"body": {"stringValue": "hi"}}`.
 - A raw transport view, for debugging the channel itself rather than the
   actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.

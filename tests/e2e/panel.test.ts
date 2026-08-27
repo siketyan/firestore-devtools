@@ -69,6 +69,14 @@ describe("the panel", () => {
       ]);
     });
 
+    it("shows the fields as values, not as `Value` wrappers", async () => {
+      await panel.page.locator("aside ol li button").first().click();
+      const payload = await panel.page.locator("aside").innerText();
+
+      expect(payload).toContain('body: "hello"');
+      expect(payload).not.toContain("stringValue");
+    });
+
     it("shows a document without its event wrapper", async () => {
       await panel.page.locator("aside ol li button").first().click();
       const payload = await panel.page.locator("aside").innerText();

@@ -47,9 +47,14 @@ describe("requestPayload", () => {
     ]);
   });
 
-  it("gives the writes for a write", () => {
+  it("gives the writes for a write, with the document unwrapped", () => {
     expect(requestPayload(actionFor(actions, "messages/m3"))).toMatchObject([
-      { update: { name: expect.stringContaining("messages/m3") } },
+      {
+        update: {
+          name: expect.stringContaining("messages/m3"),
+          fields: { body: "sent" },
+        },
+      },
     ]);
   });
 
@@ -88,9 +93,16 @@ describe("responseItems", () => {
 
     expect(first?.body).toMatchObject({
       name: expect.stringContaining("messages/m1"),
-      fields: { body: { stringValue: "hello" } },
     });
     expect(first?.body).not.toHaveProperty("targetIds");
+  });
+
+  it("unwraps the fields, so a document reads the way the app sees it", () => {
+    const [first] = responseItems(actionFor(actions, "messages"));
+
+    expect(first?.body).toMatchObject({
+      fields: { body: "hello", createdAt: "2026-08-27T12:59:00Z" },
+    });
   });
 
   it("has nothing to show for a document that was removed", () => {

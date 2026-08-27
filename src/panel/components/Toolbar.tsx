@@ -4,6 +4,14 @@ import * as styles from "./Toolbar.module.css";
 
 export type KindFilter = "all" | ActionKind;
 
+/** What the list is showing: the actions, or the wire underneath them. */
+export type View = "actions" | "transport";
+
+const VIEWS: Array<{ value: View; label: string }> = [
+  { value: "actions", label: "Actions" },
+  { value: "transport", label: "Transport" },
+];
+
 /** The filter chips. `transaction` is rare, so it shares one with nothing. */
 const KINDS: Array<{ value: KindFilter; label: string }> = [
   { value: "all", label: "All" },
@@ -23,6 +31,8 @@ export function Toolbar({
   onQueryChange,
   kind,
   onKindChange,
+  view,
+  onViewChange,
   onClear,
   onExport,
   preserveLog,
@@ -30,6 +40,8 @@ export function Toolbar({
   shown,
   total,
 }: {
+  view: View;
+  onViewChange: (view: View) => void;
   query: string;
   onQueryChange: (query: string) => void;
   kind: KindFilter;
@@ -62,6 +74,19 @@ export function Toolbar({
         Export
       </button>
 
+      <div className={styles.group}>
+        {VIEWS.map(({ value, label }) => (
+          <button
+            type="button"
+            key={value}
+            className={classNames(styles.chip, value === view && styles.active)}
+            onClick={() => onViewChange(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       <label className={styles.toggle} title="Keep the capture across reloads">
         <input
           type="checkbox"
@@ -79,7 +104,7 @@ export function Toolbar({
         onChange={(event) => onQueryChange(event.target.value)}
       />
 
-      <div className={styles.group}>
+      <div className={styles.group} hidden={view !== "actions"}>
         {KINDS.map(({ value, label }) => (
           <button
             type="button"
@@ -93,7 +118,8 @@ export function Toolbar({
       </div>
 
       <span className={styles.count}>
-        {shown === total ? `${total}` : `${shown} / ${total}`} actions
+        {shown === total ? `${total}` : `${shown} / ${total}`}{" "}
+        {view === "actions" ? "actions" : "exchanges"}
       </span>
     </div>
   );

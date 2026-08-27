@@ -84,6 +84,16 @@ jobs:
         env:
           BROWSER: ${{ matrix.browser }}
 
+      # Unpacked, which is what both browsers want for a local install:
+      # `chrome://extensions` ▸ Load unpacked, or `about:debugging` ▸ Load
+      # Temporary Add-on.
+      - name: Upload the build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: firestore-devtools-${{ matrix.browser }}
+          path: dist/${{ matrix.browser }}
+          if-no-files-found: error
+
   test:
     name: Test
     runs-on: ubuntu-24.04

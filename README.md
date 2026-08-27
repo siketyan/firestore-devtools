@@ -137,6 +137,10 @@ pnpm dev             # launches a fresh Chromium with the extension loaded
 Open DevTools on a page that uses Firestore and pick the **Firestore** tab.
 Reload the page with the panel open to capture the initial `Listen` stream.
 
+Every push and pull request also uploads an unpacked build per browser as a CI
+artifact, if you would rather install one than build it: `chrome://extensions`
+▸ Load unpacked, or `about:debugging` ▸ Load Temporary Add-on.
+
 Other commands:
 
 ```sh

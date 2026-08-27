@@ -13,10 +13,6 @@
     text-align: center;
   }
 
-  .hint code {
-    font-family: var(--font-mono);
-  }
-
   .table {
     width: 100%;
     border-collapse: collapse;
@@ -56,34 +52,18 @@
     &.failed td {
       color: var(--error);
     }
-
-    &.channel td {
-      color: var(--text-dim);
-    }
   }
 
-  .subject {
-    display: flex;
-    flex-direction: column;
-    /* Keeps the columns after it on screen when the detail pane is open. */
-    max-width: 320px;
+  .verb {
+    width: 1%;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
   }
 
   .target {
+    max-width: 480px;
     overflow: hidden;
     font-weight: 600;
     text-overflow: ellipsis;
-  }
-
-  .detail {
-    overflow: hidden;
-    color: var(--text-dim);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-overflow: ellipsis;
-  }
-
-  .method {
-    font-family: var(--font-mono);
   }
 }

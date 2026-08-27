@@ -9,7 +9,6 @@ import {
 import type { Action } from "../shared/actions";
 import { ExchangeStore } from "../shared/store";
 import {
-  type Exchange,
   PANEL_PORT_NAME,
   type PanelRequest,
   type PanelResponse,
@@ -18,8 +17,6 @@ import {
 export interface Capture {
   /** The traffic seen as the actions that produced it. */
   actions: readonly Action[];
-  /** The HTTP exchanges an action's messages travelled on. */
-  exchangesOf: (action: Action) => Exchange[];
   clear: () => void;
 }
 
@@ -116,10 +113,5 @@ export function useCapture(): Capture {
     } satisfies PanelRequest);
   };
 
-  const exchangesOf = (action: Action): Exchange[] =>
-    action.exchangeIds
-      .map((id) => store.get(id))
-      .filter((exchange): exchange is Exchange => exchange != null);
-
-  return { actions, exchangesOf, clear };
+  return { actions, clear };
 }

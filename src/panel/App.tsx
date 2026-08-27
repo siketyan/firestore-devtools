@@ -15,13 +15,13 @@ function matches(action: Action, query: string, kind: KindFilter): boolean {
   return (
     action.target.toLowerCase().includes(needle) ||
     (action.detail ?? "").toLowerCase().includes(needle) ||
-    action.method.toLowerCase().includes(needle) ||
+    (action.request?.raw ?? "").toLowerCase().includes(needle) ||
     action.responses.some((frame) => frame.raw.toLowerCase().includes(needle))
   );
 }
 
 export function App() {
-  const { actions, exchangesOf, clear } = useCapture();
+  const { actions, clear } = useCapture();
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<KindFilter>("all");
   const [selectedId, setSelectedId] = useState<string | undefined>();
@@ -57,7 +57,6 @@ export function App() {
         {selected ? (
           <ActionDetail
             action={selected}
-            exchanges={exchangesOf(selected)}
             onClose={() => setSelectedId(undefined)}
           />
         ) : null}

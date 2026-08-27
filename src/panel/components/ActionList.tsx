@@ -1,7 +1,15 @@
-import type { Action } from "../../shared/actions";
+import type { Action, ActionKind } from "../../shared/actions";
 import { classNames } from "../classNames";
 import { formatDuration, formatTime } from "../format";
 import * as styles from "./ActionList.module.css";
+
+/** Read like an HTTP method: the verb first, then what it acts on. */
+export const VERBS: Record<ActionKind, string> = {
+  query: "QUERY",
+  get: "GET",
+  write: "WRITE",
+  transaction: "TXN",
+};
 
 export interface ActionListProps {
   actions: readonly Action[];
@@ -25,9 +33,9 @@ export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
     return (
       <div className={classNames(styles.list, styles.empty)}>
         <p>No Firestore activity captured yet.</p>
-        <p className={styles.hint}>
-          Reload the inspected page with this panel open to record the listeners
-          it attaches on start-up.
+        <p>
+          Reload the inspected page with this panel open to record the reads it
+          starts up with.
         </p>
       </div>
     );
@@ -38,9 +46,8 @@ export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Target</th>
             <th>Action</th>
-            <th>Transport</th>
+            <th>Target</th>
             <th>Status</th>
             <th>Docs</th>
             <th>Latency</th>
@@ -54,21 +61,12 @@ export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
               className={classNames(
                 styles.row,
                 action.state === "failed" && styles.failed,
-                action.kind === "channel" && styles.channel,
                 action.id === selectedId && styles.selected,
               )}
               onClick={() => onSelect(action.id)}
             >
-              <td className={styles.subject}>
-                <span className={styles.target}>{action.target}</span>
-                {action.detail ? (
-                  <span className={styles.detail}>{action.detail}</span>
-                ) : null}
-              </td>
-              <td className={styles.method}>{action.method}</td>
-              <td>
-                {action.transport === "webchannel" ? "WebChannel" : "HTTP"}
-              </td>
+              <td className={styles.verb}>{VERBS[action.kind]}</td>
+              <td className={styles.target}>{action.target}</td>
               <td>{statusOf(action)}</td>
               <td>{action.documentCount || "—"}</td>
               <td>{formatDuration(latencyOf(action))}</td>

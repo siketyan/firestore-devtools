@@ -4,28 +4,18 @@ import * as styles from "./Toolbar.module.css";
 
 export type KindFilter = "all" | ActionKind;
 
-/**
- * The filter chips. `transaction` and `channel` share one chip: neither is
- * something the developer wrote, and both are rare.
- */
-const KINDS: Array<{
-  value: KindFilter;
-  label: string;
-  matches: ActionKind[];
-}> = [
-  { value: "all", label: "All", matches: [] },
-  { value: "listen", label: "Listen", matches: ["listen"] },
-  { value: "query", label: "Query", matches: ["query"] },
-  { value: "get", label: "Get", matches: ["get"] },
-  { value: "write", label: "Write", matches: ["write"] },
-  { value: "channel", label: "Other", matches: ["channel", "transaction"] },
+/** The filter chips. `transaction` is rare, so it shares one with nothing. */
+const KINDS: Array<{ value: KindFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "query", label: "Query" },
+  { value: "get", label: "Get" },
+  { value: "write", label: "Write" },
+  { value: "transaction", label: "Transaction" },
 ];
 
 /** Whether an action passes the chip the user picked. */
 export function matchesKind(kind: ActionKind, filter: KindFilter): boolean {
-  if (filter === "all") return true;
-  const chip = KINDS.find((entry) => entry.value === filter);
-  return chip ? chip.matches.includes(kind) : kind === filter;
+  return filter === "all" || kind === filter;
 }
 
 export interface ToolbarProps {

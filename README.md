@@ -16,17 +16,24 @@ Built with [Extension.js](https://extension.js.org), React and TypeScript.
 
 ## What you see
 
-One row per action, not per request:
+One row per action, not per request. The verb comes first, like an HTTP method,
+and the target is the collection or document it acts on:
 
-| Target | Action | Transport | Status | Docs |
+| Action | Target | Status | Docs | Latency |
 | --- | --- | --- | --- | --- |
-| **messages**<br><sub>`where read == false · orderBy createdAt desc · limit 25`</sub> | Listen | WebChannel | active | 2 |
-| **users/u1** | Listen | WebChannel | active | 1 |
-| **messages/m3**<br><sub>`set`</sub> | Write | WebChannel | complete | 1 |
-| **users**<br><sub>`where age >= 18 · limit 10`</sub> | RunQuery | HTTP | 200 | 2 |
+| `QUERY` | **messages** | active | 2 | 230 ms |
+| `GET` | **users/u1** | active | 1 | 690 ms |
+| `WRITE` | **messages/m3** | complete | 1 | 60 ms |
+| `QUERY` | **users** | 200 | 2 | 80 ms |
+| `GET` | **users/u9** | 403 | — | 40 ms |
 
-Selecting one shows its request, every response it has received so far, and an
-overview naming the HTTP exchanges its messages actually travelled on.
+The verb is what the developer asked for rather than how the SDK delivered it.
+A one-shot `getDocs()` opens a `Listen` target exactly as `onSnapshot()` does,
+so both are a `QUERY`; whether one is still running shows up as its status
+(`active` versus `complete`).
+
+Selecting a row shows its query clauses, its request and every response it has
+received so far.
 
 ## What it captures
 
@@ -55,9 +62,9 @@ each `documentChange`, and `removedTargetIds` on each delete.
 `Write` has no such id, but the stream is strictly ordered, so its results are
 matched to their requests first-in-first-out.
 
-Whatever cannot be attributed to an action — the channel handshakes, the
-`noop` keepalives — is collected under one `channel` row per stream rather
-than being dropped.
+Messages that belong to no action — the channel handshakes, the `noop`
+keepalives — are dropped: they are transport bookkeeping, not something anyone
+asked for.
 
 ## How it works
 
@@ -99,7 +106,8 @@ page realm            isolated realm        extension              devtools
 - **`proto.ts`** reads the protobuf-JSON shapes: resource names, `Value`
   wrappers and `StructuredQuery`, which is what turns a query into
   `where read == false · orderBy createdAt desc · limit 25`.
-- **`actions.ts`** is the correlator described above.
+- **`actions.ts`** is the correlator described above, and the projection the
+  panel lists.
 - **`store.ts`** replays the capture events into both projections. The
   background worker leaves the action one switched off — nothing there reads
   it.
@@ -141,7 +149,7 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
   `{"body": {"stringValue": "hi"}}`. `proto.ts` already does this for the
   values inside a query.
 - A raw transport view, for debugging the channel itself rather than the
-  actions riding on it.
+  actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.
 - Copy as JSON, and export the capture.
 - Firefox: `world: "MAIN"` content scripts need Firefox 128+; verify the

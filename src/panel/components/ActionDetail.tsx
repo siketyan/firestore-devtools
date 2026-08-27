@@ -1,41 +1,26 @@
 import { useState } from "react";
 
 import type { Action } from "../../shared/actions";
-import type { Exchange, Frame } from "../../shared/types";
+import type { Frame } from "../../shared/types";
 import { classNames } from "../classNames";
-import { formatBytes, formatDuration, formatTime } from "../format";
+import { formatBytes, formatTime } from "../format";
 import * as styles from "./ActionDetail.module.css";
+import { VERBS } from "./ActionList";
 import { JsonView } from "./JsonView";
 
-type Tab = "overview" | "request" | "responses";
+type Tab = "request" | "responses";
 
 const TABS: Array<{ value: Tab; label: string }> = [
-  { value: "overview", label: "Overview" },
   { value: "request", label: "Request" },
   { value: "responses", label: "Responses" },
 ];
 
-const KIND_LABELS: Record<Action["kind"], string> = {
-  listen: "Listener",
-  query: "Query",
-  get: "Document read",
-  write: "Write",
-  transaction: "Transaction",
-  channel: "Transport",
-};
-
 export interface ActionDetailProps {
   action: Action;
-  /** The HTTP exchanges this action's messages travelled on. */
-  exchanges: readonly Exchange[];
   onClose: () => void;
 }
 
-export function ActionDetail({
-  action,
-  exchanges,
-  onClose,
-}: ActionDetailProps) {
+export function ActionDetail({ action, onClose }: ActionDetailProps) {
   const [tab, setTab] = useState<Tab>("responses");
   const [selectedFrameId, setSelectedFrameId] = useState<string | undefined>();
 
@@ -46,6 +31,24 @@ export function ActionDetail({
   return (
     <aside className={styles.detail}>
       <header className={styles.header}>
+        <span className={styles.verb}>{VERBS[action.kind]}</span>
+        <span className={styles.subject}>
+          <span className={styles.target}>{action.target}</span>
+          {action.detail ? (
+            <span className={styles.query}>{action.detail}</span>
+          ) : null}
+        </span>
+        <button
+          type="button"
+          className={styles.close}
+          onClick={onClose}
+          title="Close"
+        >
+          ×
+        </button>
+      </header>
+
+      <div className={styles.tabbar}>
         <div className={styles.tabs}>
           {TABS.map(({ value, label }) => (
             <button
@@ -58,20 +61,9 @@ export function ActionDetail({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          className={styles.close}
-          onClick={onClose}
-          title="Close"
-        >
-          ×
-        </button>
-      </header>
+      </div>
 
       <div className={styles.body}>
-        {tab === "overview" ? (
-          <Overview action={action} exchanges={exchanges} />
-        ) : null}
         {tab === "request" ? <Request action={action} /> : null}
         {tab === "responses" ? (
           <Responses
@@ -82,69 +74,6 @@ export function ActionDetail({
         ) : null}
       </div>
     </aside>
-  );
-}
-
-function Overview({
-  action,
-  exchanges,
-}: {
-  action: Action;
-  exchanges: readonly Exchange[];
-}) {
-  const rows: Array<[string, string]> = [
-    ["Action", KIND_LABELS[action.kind]],
-    ["RPC", action.method],
-    ["Target", action.target],
-  ];
-
-  if (action.detail) rows.push(["Query", action.detail]);
-  if (action.targetId != null) {
-    rows.push(["Target id", String(action.targetId)]);
-  }
-
-  rows.push(
-    ["Database", action.database ?? "—"],
-    [
-      "Transport",
-      action.transport === "webchannel"
-        ? "WebChannel (streaming)"
-        : "HTTP (unary)",
-    ],
-    ["State", action.error ?? `${action.status ?? ""} ${action.state}`.trim()],
-    ["Started", formatTime(action.startedAt)],
-    [
-      "First response",
-      action.respondedAt
-        ? `${formatTime(action.respondedAt)} (${formatDuration(
-            action.respondedAt - action.startedAt,
-          )})`
-        : "—",
-    ],
-    ["Ended", action.endedAt ? formatTime(action.endedAt) : "—"],
-    ["Documents", String(action.documentCount)],
-    ["Responses", String(action.responses.length)],
-    ["Size", formatBytes(action.byteLength)],
-  );
-
-  return (
-    <>
-      <DefinitionList rows={rows} />
-
-      <h3 className={styles.heading}>
-        {/* A streaming action is stitched together from more than one. */}
-        HTTP exchanges
-      </h3>
-      <DefinitionList
-        rows={exchanges.map(
-          (exchange) =>
-            [
-              `${exchange.method} ${exchange.status ?? exchange.state}`,
-              exchange.url,
-            ] as const,
-        )}
-      />
-    </>
   );
 }
 
@@ -214,24 +143,5 @@ function Responses({
         ) : null}
       </div>
     </div>
-  );
-}
-
-function DefinitionList({
-  rows,
-}: {
-  rows: ReadonlyArray<readonly [string, string]>;
-}) {
-  if (rows.length === 0) return <p className={styles.empty}>None.</p>;
-
-  return (
-    <dl className={styles.definitions}>
-      {rows.map(([term, description]) => (
-        <div className={styles.row} key={term}>
-          <dt>{term}</dt>
-          <dd>{description}</dd>
-        </div>
-      ))}
-    </dl>
   );
 }

@@ -15,34 +15,33 @@ import {
   type StructuredQuery,
   summariseQuery,
 } from "./proto";
-import type { Exchange, Frame, Transport } from "./types";
+import type { Exchange, Frame } from "./types";
 
+/**
+ * What the developer asked for, not how the SDK delivered it. A one-shot
+ * `getDocs()` opens a `Listen` target just as `onSnapshot()` does, so the two
+ * are the same kind of action here; whether it is still running shows up as
+ * the state instead.
+ */
 export type ActionKind =
-  /** A listener on a query or a document. */
-  | "listen"
-  /** A one-shot query. */
+  /** Reading a collection. */
   | "query"
-  /** A one-shot document read. */
+  /** Reading a document. */
   | "get"
-  /** A create, update or delete. */
+  /** Creating, updating or deleting. */
   | "write"
   /** Transaction bookkeeping. */
-  | "transaction"
-  /** Traffic that belongs to the channel itself rather than to an action. */
-  | "channel";
+  | "transaction";
 
 export type ActionState = "pending" | "active" | "complete" | "failed";
 
 export interface Action {
   id: string;
   kind: ActionKind;
-  /** The RPC behind it, e.g. `Listen`, `RunQuery`, `Commit`. */
-  method: string;
   /** The collection or document acted on, relative to the database root. */
   target: string;
   /** The query clauses, the write verbs — whatever narrows down the target. */
   detail?: string;
-  transport: Transport;
   database?: string;
   /** The WebChannel target id, for the actions that have one. */
   targetId?: number;
@@ -84,8 +83,6 @@ export class ActionIndex {
   readonly #pendingWrites = new Map<string, string[]>();
   /** exchange id -> action id, for the one-request-one-response RPCs. */
   readonly #byExchange = new Map<string, string>();
-  /** exchange id -> action id, for a stream's own bookkeeping messages. */
-  readonly #channels = new Map<string, string>();
   #snapshot: readonly Action[] = [];
   #sequence = 0;
 
@@ -104,7 +101,6 @@ export class ActionIndex {
     this.#openTargets.clear();
     this.#pendingWrites.clear();
     this.#byExchange.clear();
-    this.#channels.clear();
     this.#snapshot = [];
   }
 
@@ -137,9 +133,9 @@ export class ActionIndex {
       this.#ingestListen(exchange, frame);
     } else if (exchange.rpc.method === "Write") {
       this.#ingestWrite(exchange, frame);
-    } else {
-      this.#attach(this.#channelFor(exchange), exchange, frame);
     }
+    // A frame that belongs to no action — a channel handshake, a keepalive —
+    // is not something the developer asked for, so it is simply dropped.
 
     this.#publish();
   }
@@ -149,17 +145,6 @@ export class ActionIndex {
     const unary = this.#byExchange.get(exchange.id);
     if (unary) {
       const action = this.#byId.get(unary);
-      if (action) {
-        action.status = exchange.status;
-        action.error = exchange.error;
-        action.endedAt = exchange.finishedAt;
-        action.state = failedFrom(exchange) ? "failed" : "complete";
-      }
-    }
-
-    const channel = this.#channels.get(exchange.id);
-    if (channel) {
-      const action = this.#byId.get(channel);
       if (action) {
         action.status = exchange.status;
         action.error = exchange.error;
@@ -210,8 +195,8 @@ export class ActionIndex {
       const removeTarget = asNumber(request?.removeTarget);
       if (removeTarget != null) {
         const action = this.#closeTarget(database, removeTarget);
-        this.#attach(action ?? this.#channelFor(exchange), exchange, frame);
         if (action) {
+          this.#attach(action, exchange, frame);
           // The developer unsubscribed; the listener's life is over even
           // though the channel it rode on stays open.
           action.state = action.state === "failed" ? "failed" : "complete";
@@ -220,23 +205,12 @@ export class ActionIndex {
         return;
       }
 
-      this.#attach(this.#channelFor(exchange), exchange, frame);
       return;
     }
 
-    const entries = asArray(frame.decoded);
-    if (!entries) {
-      this.#attach(this.#channelFor(exchange), exchange, frame);
-      return;
+    for (const entry of asArray(frame.decoded) ?? []) {
+      this.#routeListenResponse(exchange, frame, database, entry);
     }
-
-    let routed = false;
-    for (const entry of entries) {
-      routed =
-        this.#routeListenResponse(exchange, frame, database, entry) || routed;
-    }
-
-    if (!routed) this.#attach(this.#channelFor(exchange), exchange, frame);
   }
 
   /** Returns true when the entry belonged to at least one open target. */
@@ -329,13 +303,8 @@ export class ActionIndex {
     // the same listener, not a new one.
     if (existing) return existing;
 
-    const { target, detail } = describeTarget(addTarget);
     const action = this.#create({
-      kind: "listen",
-      method: "Listen",
-      target,
-      detail,
-      transport: exchange.rpc.transport,
+      ...describeTarget(addTarget),
       database: exchange.rpc.database,
       targetId,
       startedAt: frame.timestamp,
@@ -379,19 +348,12 @@ export class ActionIndex {
 
     if (frame.direction === "outbound") {
       const writes = asArray(asRecord(frame.decoded)?.writes);
-      if (!writes || writes.length === 0) {
-        // The stream handshake, which carries no writes.
-        this.#attach(this.#channelFor(exchange), exchange, frame);
-        return;
-      }
+      // A payload with no writes is the stream handshake.
+      if (!writes || writes.length === 0) return;
 
-      const { target, detail } = describeWrites(writes);
       const action = this.#create({
         kind: "write",
-        method: "Write",
-        target,
-        detail,
-        transport: exchange.rpc.transport,
+        ...describeWrites(writes),
         database: exchange.rpc.database,
         startedAt: frame.timestamp,
       });
@@ -404,7 +366,6 @@ export class ActionIndex {
       return;
     }
 
-    let routed = false;
     for (const entry of asMessages(frame.decoded)) {
       const results = asArray(entry.writeResults);
       // Anything else is the handshake, which only hands back a stream id.
@@ -424,10 +385,7 @@ export class ActionIndex {
       action.endedAt = frame.timestamp;
       action.state = "complete";
       action.documentCount += results.length;
-      routed = true;
     }
-
-    if (!routed) this.#attach(this.#channelFor(exchange), exchange, frame);
   }
 
   /* ------------------------------------------------------------------ rest */
@@ -451,38 +409,13 @@ export class ActionIndex {
 
     const request =
       frame.direction === "outbound" ? asRecord(frame.decoded) : undefined;
-    const { kind, target, detail } = describeRest(exchange, request);
 
     const action = this.#create({
-      kind,
-      method: exchange.rpc.method,
-      target,
-      detail,
-      transport: exchange.rpc.transport,
+      ...describeRest(exchange, request),
       database: exchange.rpc.database,
       startedAt: exchange.startedAt,
     });
     this.#byExchange.set(exchange.id, action.id);
-    return action;
-  }
-
-  /* --------------------------------------------------------------- channel */
-
-  /** The catch-all action for a stream's own bookkeeping messages. */
-  #channelFor(exchange: Exchange): Action {
-    const existing = this.#byId.get(this.#channels.get(exchange.id) ?? "");
-    if (existing) return existing;
-
-    const action = this.#create({
-      kind: "channel",
-      method: exchange.rpc.method,
-      target: `${exchange.rpc.method} channel`,
-      detail: "transport messages",
-      transport: exchange.rpc.transport,
-      database: exchange.rpc.database,
-      startedAt: exchange.startedAt,
-    });
-    this.#channels.set(exchange.id, action.id);
     return action;
   }
 
@@ -529,9 +462,6 @@ export class ActionIndex {
     for (const [key, id] of this.#byExchange) {
       if (id === action.id) this.#byExchange.delete(key);
     }
-    for (const [key, id] of this.#channels) {
-      if (id === action.id) this.#channels.delete(key);
-    }
     for (const [database, queue] of this.#pendingWrites) {
       this.#pendingWrites.set(
         database,
@@ -568,16 +498,14 @@ interface Description {
   detail?: string;
 }
 
-/** What a `Listen` `addTarget` is watching. */
-function describeTarget(addTarget: Record<string, unknown>): {
-  target: string;
-  detail?: string;
-} {
+/** What a `Listen` `addTarget` is watching, and which kind of read that is. */
+function describeTarget(addTarget: Record<string, unknown>): Description {
   const documents = asRecord(addTarget.documents);
   if (documents) {
     const names = asArray(documents.documents)?.map(String) ?? [];
     const paths = names.map(relativePath);
     return {
+      kind: "get",
       target: paths[0] ?? "(documents)",
       detail: paths.length > 1 ? `and ${paths.length - 1} more` : undefined,
     };
@@ -588,6 +516,7 @@ function describeTarget(addTarget: Record<string, unknown>): {
   const parent = query?.parent == null ? undefined : String(query.parent);
 
   return {
+    kind: "query",
     target: queryCollection(parent, structured) || "(query)",
     detail: summariseQuery(structured) || undefined,
   };

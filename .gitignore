@@ -1,0 +1,34 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules
+
+# testing
+coverage
+
+# production
+dist
+
+# misc
+.DS_Store
+
+# extension.js local session state
+.extension-js
+
+# extension.js regenerates this on every build; the types it references are
+# wired up through tsconfig.json#compilerOptions.types instead
+extension-env.d.ts
+
+# local env files
+.env
+.env*
+!.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# debug files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

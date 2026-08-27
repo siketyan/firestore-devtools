@@ -1,0 +1,53 @@
+.json {
+  font-family: var(--font-mono);
+  line-height: 1.5;
+
+  .row {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+
+    &.toggle {
+      display: block;
+      width: 100%;
+      padding: 0;
+      border: none;
+      background: none;
+      color: inherit;
+      font: inherit;
+      line-height: inherit;
+      text-align: left;
+      cursor: pointer;
+      user-select: none;
+    }
+  }
+
+  .caret {
+    display: inline-block;
+    width: 12px;
+    color: var(--text-dim);
+  }
+
+  .key {
+    color: var(--accent);
+  }
+
+  .summary {
+    color: var(--text-dim);
+  }
+
+  .value {
+    &.string {
+      color: var(--inbound);
+    }
+
+    &.number,
+    &.boolean {
+      color: var(--outbound);
+    }
+
+    &.null,
+    &.undefined {
+      color: var(--text-dim);
+    }
+  }
+}

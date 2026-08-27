@@ -9,13 +9,12 @@ The Network tab can only show you HTTP requests, which is the wrong unit here:
 one listener's request and its responses travel on two different requests, and
 neither of them is named after anything you wrote.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/panel-dark.png" />
-  <img
-    alt="The Firestore panel: a list of actions, each one a verb and the collection or document it acts on, with the documents a selected listener has received"
-    src="docs/panel-light.png"
-  />
-</picture>
+<div>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/panel-dark.png">
+    <img alt="The Firestore panel: a list of actions, and the documents a selected listener has received" src="docs/panel-light.png">
+  </picture>
+</div>
 
 > **Status: early**, but complete enough to use: it captures both transports,
 > puts each request back together with its responses, and shows them as the

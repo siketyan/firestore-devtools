@@ -10,6 +10,11 @@ declare global {
   }
 }
 
+export interface PanelOptions {
+  viewport?: { width: number; height: number };
+  colorScheme?: "light" | "dark";
+}
+
 export interface Panel {
   page: Page;
   /** The action list, which is the element that scrolls. */
@@ -26,10 +31,10 @@ export interface Panel {
 export async function openPanel(
   browser: Browser,
   exchanges: Exchange[],
-  viewport = { width: 1200, height: 640 },
+  { viewport = { width: 1200, height: 640 }, colorScheme }: PanelOptions = {},
 ): Promise<Panel> {
   const server: StaticServer = await serveDist();
-  const page = await browser.newPage({ viewport });
+  const page = await browser.newPage({ viewport, colorScheme });
 
   const failures: string[] = [];
   page.on("pageerror", (error) => failures.push(error.message));

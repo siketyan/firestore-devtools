@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  describePayload,
   parseWebChannelRequest,
   WebChannelResponseParser,
 } from "../../src/shared/webchannel";
@@ -50,7 +49,10 @@ describe("WebChannelResponseParser", () => {
     const first = parser.push(wire.slice(0, split));
     const second = parser.push(wire.slice(split));
 
-    expect([...first, ...second].map((it) => it.ordinal)).toEqual([1, 2]);
+    expect([...first, ...second].map((it) => it.payload)).toEqual([
+      ["c", "SID123", "", 8],
+      [{ targetChange: { targetChangeType: "ADD", targetIds: [2] } }],
+    ]);
     expect(first.length + second.length).toBe(2);
   });
 
@@ -77,18 +79,5 @@ describe("WebChannelResponseParser", () => {
   it("does not emit half a JSON document", () => {
     const parser = new WebChannelResponseParser();
     expect(parser.push('[[1,[{"noop"')).toHaveLength(0);
-  });
-});
-
-describe("describePayload", () => {
-  it("names the protos in a message", () => {
-    expect(describePayload([{ targetChange: {} }])).toBe("targetChange");
-    expect(describePayload({ database: "d", addTarget: {} })).toBe(
-      "database, addTarget",
-    );
-  });
-
-  it("passes a control code through", () => {
-    expect(describePayload(["c", "SID", "", 8])).toBe("c, SID");
   });
 });

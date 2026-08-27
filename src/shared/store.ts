@@ -1,17 +1,8 @@
 import { type Action, ActionIndex } from "./actions";
 import type { CaptureEvent, Exchange } from "./types";
 
-export interface ExchangeStoreOptions {
-  /** Oldest exchanges are dropped past this count. */
-  maxExchanges?: number;
-  /** Oldest frames of a single exchange are dropped past this count. */
-  maxFramesPerExchange?: number;
-  /**
-   * Whether to maintain the action projection. The background worker only
-   * ships exchanges to the panels, so it leaves this off.
-   */
-  actions?: boolean;
-}
+/** Oldest exchanges, and oldest frames of one exchange, are dropped past this. */
+const MAX = 500;
 
 /**
  * Ordered collection of captured exchanges, kept in sync by replaying the
@@ -26,8 +17,6 @@ export interface ExchangeStoreOptions {
  * snapshot array holding them, so subscribers have something to compare.
  */
 export class ExchangeStore {
-  readonly #maxExchanges: number;
-  readonly #maxFramesPerExchange: number;
   readonly #order: Exchange[] = [];
   readonly #byId = new Map<string, Exchange>();
   readonly #listeners = new Set<() => void>();
@@ -35,14 +24,12 @@ export class ExchangeStore {
   /** Rebuilt on every change, so subscribers can compare it by identity. */
   #snapshot: readonly Exchange[] = [];
 
-  constructor(options: ExchangeStoreOptions = {}) {
-    this.#maxExchanges = options.maxExchanges ?? 500;
-    this.#maxFramesPerExchange = options.maxFramesPerExchange ?? 500;
-    this.#actions = options.actions === false ? undefined : new ActionIndex();
-  }
-
-  get(id: string): Exchange | undefined {
-    return this.#byId.get(id);
+  /**
+   * @param actions whether to maintain the action projection. The background
+   * worker only ships exchanges to the panels, so it leaves this off.
+   */
+  constructor(actions = true) {
+    this.#actions = actions ? new ActionIndex() : undefined;
   }
 
   subscribe = (listener: () => void): (() => void) => {
@@ -68,14 +55,12 @@ export class ExchangeStore {
         const exchange: Exchange = {
           ...event.exchange,
           state: "pending",
-          responseHeaders: {},
-          bytesReceived: 0,
           frames: [],
         };
         this.#order.push(exchange);
         this.#byId.set(exchange.id, exchange);
 
-        while (this.#order.length > this.#maxExchanges) {
+        while (this.#order.length > MAX) {
           const evicted = this.#order.shift();
           if (evicted) this.#byId.delete(evicted.id);
         }
@@ -86,11 +71,8 @@ export class ExchangeStore {
         const exchange = this.#byId.get(event.exchangeId);
         if (!exchange) return;
         exchange.frames.push(event.frame);
-        if (exchange.frames.length > this.#maxFramesPerExchange) {
-          exchange.frames.splice(
-            0,
-            exchange.frames.length - this.#maxFramesPerExchange,
-          );
+        if (exchange.frames.length > MAX) {
+          exchange.frames.splice(0, exchange.frames.length - MAX);
         }
         if (exchange.state === "pending") exchange.state = "streaming";
         this.#actions?.ingest(exchange, event.frame);

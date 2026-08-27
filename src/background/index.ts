@@ -21,7 +21,7 @@ function backlogFor(tabId: number): ExchangeStore {
   if (!store) {
     // The panels build the action view themselves; here it would be pure
     // work per tab for nobody to read.
-    store = new ExchangeStore({ actions: false });
+    store = new ExchangeStore(false);
     backlogs.set(tabId, store);
   }
   return store;

@@ -137,7 +137,7 @@ describe("ActionIndex", () => {
       actions.map(({ request, responses, ...rest }) => ({
         ...rest,
         responses: responses.length,
-        request: request?.label,
+        request: request?.raw,
       }));
 
     expect(strip(restored.getActions())).toEqual(strip(live.getActions()));
@@ -151,7 +151,7 @@ describe("ActionIndex", () => {
   });
 
   it("does the action work only when asked to", () => {
-    const store = new ExchangeStore({ actions: false });
+    const store = new ExchangeStore(false);
     for (const event of events()) store.apply(event);
 
     expect(store.getSnapshot()).toHaveLength(6);

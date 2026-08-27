@@ -1,8 +1,19 @@
-export function formatBytes(bytes: number | undefined): string {
-  if (bytes == null) return "—";
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} kB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+/** Joins the truthy class names, so conditional modifiers read cleanly. */
+export function classNames(
+  ...names: Array<string | false | undefined>
+): string {
+  return names.filter(Boolean).join(" ");
+}
+
+const bytes = new Intl.NumberFormat(undefined, {
+  style: "unit",
+  unit: "byte",
+  notation: "compact",
+  unitDisplay: "narrow",
+});
+
+export function formatBytes(value: number | undefined): string {
+  return value == null ? "—" : bytes.format(value);
 }
 
 export function formatDuration(ms: number | undefined): string {

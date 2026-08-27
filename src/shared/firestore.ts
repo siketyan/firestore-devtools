@@ -69,7 +69,6 @@ export function identifyRpc(
   const webChannel = WEBCHANNEL_PATH.exec(url.pathname)?.groups;
   if (webChannel?.service && webChannel.method) {
     return {
-      service: webChannel.service,
       method: webChannel.method,
       transport: "webchannel",
       // The SDK passes the database as a query parameter on the channel URL.
@@ -79,7 +78,7 @@ export function identifyRpc(
 
   const rest = REST_PATH.exec(url.pathname)?.groups;
   if (rest?.version && rest.database && rest.resource) {
-    const { version, database, resource } = rest;
+    const { database, resource } = rest;
     const colon = resource.lastIndexOf(":");
     const verb = colon === -1 ? undefined : resource.slice(colon + 1);
 
@@ -88,7 +87,6 @@ export function identifyRpc(
       : (METHOD_TO_RPC[httpMethod.toUpperCase()] ?? httpMethod.toUpperCase());
 
     return {
-      service: `google.firestore.${version}.Firestore`,
       method,
       transport: "rest",
       database: decodeURIComponent(database),
@@ -107,14 +105,4 @@ export function identifyRpc(
  */
 function documentResource(path: string): string {
   return decodeURIComponent(path.replace(/^documents\/?/, ""));
-}
-
-/** The project id inside a `projects/p/databases/d` resource name. */
-export function projectIdOf(database: string | undefined): string | undefined {
-  return database?.match(/^projects\/([^/]+)/)?.[1];
-}
-
-/** Short label for the list column, e.g. `Listen` or `Commit`. */
-export function rpcLabel(rpc: RpcInfo): string {
-  return rpc.method;
 }

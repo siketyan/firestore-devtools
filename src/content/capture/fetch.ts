@@ -3,8 +3,8 @@
  * and, when `useFetchStreams` is on, its streaming ones too.
  */
 import { identifyRpc } from "../../shared/firestore";
-import type { ExchangeEnd, RpcInfo } from "../../shared/types";
-import { byteLengthOf, emitEnd, emitStart, nextId } from "./channel";
+import type { RpcInfo } from "../../shared/types";
+import { emitEnd, emitStart, nextId } from "./channel";
 import { bodyToText, createResponseSink, emitRequestFrames } from "./payload";
 
 export function patchFetch(): void {
@@ -25,10 +25,6 @@ export function patchFetch(): void {
     }
 
     const exchangeId = nextId("fetch");
-    const requestHeaders: Record<string, string> = {};
-    request.headers.forEach((value, key) => {
-      requestHeaders[key] = value;
-    });
 
     const body =
       bodyToText(init?.body) ??
@@ -37,16 +33,7 @@ export function patchFetch(): void {
         .text()
         .catch(() => undefined));
 
-    emitStart({
-      id: exchangeId,
-      pageUrl: location.href,
-      url: request.url,
-      method: request.method,
-      rpc,
-      startedAt: Date.now(),
-      requestHeaders,
-      bytesSent: body ? byteLengthOf(body) : 0,
-    });
+    emitStart({ id: exchangeId, rpc, startedAt: Date.now() });
     emitRequestFrames(exchangeId, rpc, body);
 
     let response: Response;
@@ -64,16 +51,7 @@ export function patchFetch(): void {
       throw error;
     }
 
-    const responseHeaders: Record<string, string> = {};
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value;
-    });
-
-    void drainResponse(exchangeId, rpc, response.clone(), {
-      status: response.status,
-      statusText: response.statusText,
-      responseHeaders,
-    });
+    void drainResponse(exchangeId, rpc, response.clone(), response.status);
 
     return response;
   } as typeof window.fetch;
@@ -87,10 +65,9 @@ async function drainResponse(
   exchangeId: string,
   rpc: RpcInfo,
   response: Response,
-  meta: Pick<ExchangeEnd, "status" | "statusText" | "responseHeaders">,
+  status: number,
 ): Promise<void> {
   const sink = createResponseSink(exchangeId, rpc);
-  let bytesReceived = 0;
 
   try {
     const reader = response.body?.getReader();
@@ -99,24 +76,20 @@ async function drainResponse(
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
-        bytesReceived += value.byteLength;
         sink.push(decoder.decode(value, { stream: true }));
       }
       sink.push(decoder.decode());
     } else {
-      const text = await response.text();
-      bytesReceived = byteLengthOf(text);
-      sink.push(text);
+      sink.push(await response.text());
     }
 
     sink.finish();
-    emitEnd(exchangeId, { ...meta, finishedAt: Date.now(), bytesReceived });
+    emitEnd(exchangeId, { status, finishedAt: Date.now() });
   } catch (error) {
     sink.finish();
     emitEnd(exchangeId, {
-      ...meta,
+      status,
       finishedAt: Date.now(),
-      bytesReceived,
       error: error instanceof Error ? error.message : String(error),
     });
   }

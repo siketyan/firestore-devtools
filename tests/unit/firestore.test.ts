@@ -5,13 +5,12 @@ import { identifyRpc } from "../../src/shared/firestore";
 const ORIGIN = "https://firestore.googleapis.com";
 
 describe("identifyRpc", () => {
-  it("reads the service and method out of a WebChannel path", () => {
+  it("reads the method out of a WebChannel path", () => {
     expect(
       identifyRpc(
         `${ORIGIN}/google.firestore.v1.Firestore/Listen/channel?database=projects%2Fdemo%2Fdatabases%2F(default)&VER=8&TYPE=xmlhttp`,
       ),
     ).toEqual({
-      service: "google.firestore.v1.Firestore",
       method: "Listen",
       transport: "webchannel",
       database: "projects/demo/databases/(default)",
@@ -24,7 +23,6 @@ describe("identifyRpc", () => {
         `${ORIGIN}/v1/projects/demo/databases/(default)/documents:commit`,
       ),
     ).toEqual({
-      service: "google.firestore.v1.Firestore",
       method: "Commit",
       transport: "rest",
       database: "projects/demo/databases/(default)",

@@ -4,6 +4,15 @@
  * something slightly generic beats one that throws inside the panel.
  */
 
+/** `JSON.parse` for text that may not be JSON at all. */
+export function tryParseJson(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+}
+
 export function asRecord(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)

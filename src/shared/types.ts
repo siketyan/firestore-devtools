@@ -20,8 +20,6 @@ export type ExchangeState = "pending" | "streaming" | "complete" | "failed";
 
 /** What we could work out about the RPC behind a request URL. */
 export interface RpcInfo {
-  /** e.g. `google.firestore.v1.Firestore`. */
-  service: string;
   /** e.g. `Listen`, `Write`, `Commit`, `RunQuery`. */
   method: string;
   transport: Transport;
@@ -47,56 +45,27 @@ export interface Frame {
   raw: string;
   /** Parsed payload, when we recognised the framing. */
   decoded?: unknown;
-  /** Short human label for the list, e.g. `targetChange` or `write`. */
-  label?: string;
   byteLength: number;
 }
 
 /** One HTTP request/response pair carrying Firestore traffic. */
 export interface Exchange {
   id: string;
-  /** URL of the document that issued the request. */
-  pageUrl: string;
-  url: string;
-  method: string;
   rpc: RpcInfo;
   state: ExchangeState;
   startedAt: number;
   finishedAt?: number;
   status?: number;
-  statusText?: string;
-  requestHeaders: Record<string, string>;
-  responseHeaders: Record<string, string>;
-  bytesSent: number;
-  bytesReceived: number;
   error?: string;
   frames: Frame[];
 }
 
 /** Everything the interceptor knows at the moment a request leaves. */
-export type ExchangeStart = Pick<
-  Exchange,
-  | "id"
-  | "pageUrl"
-  | "url"
-  | "method"
-  | "rpc"
-  | "startedAt"
-  | "requestHeaders"
-  | "bytesSent"
->;
+export type ExchangeStart = Pick<Exchange, "id" | "rpc" | "startedAt">;
 
 /** Fields that are only known once the response settles. */
 export type ExchangeEnd = Partial<
-  Pick<
-    Exchange,
-    | "finishedAt"
-    | "status"
-    | "statusText"
-    | "responseHeaders"
-    | "bytesReceived"
-    | "error"
-  >
+  Pick<Exchange, "finishedAt" | "status" | "error">
 >;
 
 export type CaptureEvent =

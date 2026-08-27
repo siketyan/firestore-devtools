@@ -8,12 +8,5 @@ export default {
   browser: {
     chrome: { profile: profile("chrome"), browserFlags: ciFlags },
     chromium: { profile: profile("chromium"), browserFlags: ciFlags },
-    edge: { profile: profile("edge"), browserFlags: ciFlags },
-    firefox: { profile: profile("firefox") },
-    "chromium-based": {
-      profile: profile("chromium-based"),
-      browserFlags: ciFlags,
-    },
-    "gecko-based": { profile: profile("gecko-based") },
   },
 };

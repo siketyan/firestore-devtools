@@ -82,7 +82,7 @@ export function responseItems(action: Action): ResponseItem[] {
     if (items.length === before && !isEvent) {
       items.push({
         id: frame.id,
-        path: frame.label ?? "response",
+        path: "response",
         timestamp: frame.timestamp,
         byteLength: frame.byteLength,
         body: frame.decoded ?? frame.raw,

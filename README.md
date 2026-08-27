@@ -149,6 +149,19 @@ pnpm lint:fix       # biome check --write
 pnpm format         # biome format --write
 ```
 
+## Browsers
+
+Chromium, Edge and Firefox 128 or newer. The interceptor is a `world: "MAIN"`
+content script, which Firefox only supports from 128, so the Firefox build
+declares that as its `strict_min_version` rather than installing and quietly
+capturing nothing.
+
+One thing differs between the two engines and it is worth knowing about, since
+getting it wrong shows up as a blank panel rather than as an error: Chrome
+resolves the paths given to `devtools.panels.create` against the extension
+root, Firefox resolves them against the devtools page doing the calling. The
+paths in `src/devtools/scripts.ts` are root-relative so that both agree.
+
 ## Tests
 
 ```sh
@@ -180,5 +193,3 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
   actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.
 - Copy as JSON, and export the capture.
-- Firefox: `world: "MAIN"` content scripts need Firefox 128+; verify the
-  WebChannel path there.

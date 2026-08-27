@@ -9,7 +9,7 @@
  */
 import type { Action } from "./actions";
 import { asArray, asMessages, asRecord } from "./json";
-import { relativePath } from "./proto";
+import { decodeDocument, relativePath } from "./proto";
 import type { Frame } from "./types";
 
 /**
@@ -38,7 +38,9 @@ export function requestPayload(action: Action): unknown {
   const aggregation = asRecord(record.structuredAggregationQuery);
   if (aggregation !== undefined) return aggregation;
 
-  if (record.writes !== undefined) return record.writes;
+  // A write carries a document, so it reads the same way one does.
+  const writes = asArray(record.writes);
+  if (writes) return writes.map(decodeWrite);
   if (record.documents !== undefined) return record.documents;
 
   return record;
@@ -156,5 +158,12 @@ function documentOf(
 ): { path: string; body: unknown } | undefined {
   const record = asRecord(value);
   if (typeof record?.name !== "string") return undefined;
-  return { path: relativePath(record.name), body: record };
+  return { path: relativePath(record.name), body: decodeDocument(record) };
+}
+
+/** The document inside a write, unwrapped; everything else left alone. */
+function decodeWrite(write: unknown): unknown {
+  const record = asRecord(write);
+  if (!record?.update) return write;
+  return { ...record, update: decodeDocument(record.update) };
 }

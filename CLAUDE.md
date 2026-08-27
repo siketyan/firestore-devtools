@@ -89,8 +89,10 @@ page realm            isolated realm        extension              devtools
 - **`firestore.ts`** maps a request URL to an RPC.
 - **`webchannel.ts`** implements the Closure WebChannel framing: a form-encoded
   `req0___data__=…` body outbound, length-prefixed JSON chunks inbound.
-- **`proto.ts`** reads the protobuf-JSON shapes — resource names, and the part
-  of `StructuredQuery` that says which collection is being read.
+- **`proto.ts`** reads the protobuf-JSON shapes — resource names, `Value`
+  wrappers, and the part of `StructuredQuery` that says which collection is
+  being read. A document is shown with its fields unwrapped and its metadata
+  left alone; an `integerValue` only becomes a number while that is lossless.
 - **`payloads.ts`** digs the query out of a request and the documents out of
   the responses, which is what the detail pane shows. Neither view should ever
   render the envelope a payload arrived in.

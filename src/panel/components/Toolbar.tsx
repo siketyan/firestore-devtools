@@ -24,6 +24,7 @@ export function Toolbar({
   kind,
   onKindChange,
   onClear,
+  onExport,
   shown,
   total,
 }: {
@@ -32,6 +33,7 @@ export function Toolbar({
   kind: KindFilter;
   onKindChange: (kind: KindFilter) => void;
   onClear: () => void;
+  onExport: () => void;
   shown: number;
   total: number;
 }) {
@@ -44,6 +46,16 @@ export function Toolbar({
         title="Clear"
       >
         Clear
+      </button>
+
+      <button
+        type="button"
+        className={styles.button}
+        onClick={onExport}
+        disabled={total === 0}
+        title="Save every captured action as JSON"
+      >
+        Export
       </button>
 
       <input

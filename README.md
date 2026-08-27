@@ -32,8 +32,16 @@ A one-shot `getDocs()` opens a `Listen` target exactly as `onSnapshot()` does,
 so both are a `QUERY`; whether one is still running shows up as its status
 (`active` versus `complete`).
 
-Selecting a row shows its query clauses, its request and every response it has
-received so far.
+Selecting a row shows its query clauses, then two views that skip the
+plumbing:
+
+- **Request** — the structured query itself, not the `addTarget.query.…`
+  wrapper that carried it to the server.
+- **Responses** — the documents, not the events. A query that matched three
+  documents arrives as three separate `documentChange` messages; the list shows
+  three documents, and selecting one shows everything under its `document`.
+  Deletes are listed too, struck through. A response that is not documents at
+  all — an error body — is shown whole rather than dropped.
 
 ## What it captures
 

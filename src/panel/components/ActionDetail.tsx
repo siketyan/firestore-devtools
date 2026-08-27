@@ -1,7 +1,11 @@
 import { useState } from "react";
 
 import type { Action } from "../../shared/actions";
-import type { Frame } from "../../shared/types";
+import {
+  type ResponseItem,
+  requestPayload,
+  responseItems,
+} from "../../shared/payloads";
 import { classNames } from "../classNames";
 import { formatBytes, formatTime } from "../format";
 import * as styles from "./ActionDetail.module.css";
@@ -22,11 +26,13 @@ export interface ActionDetailProps {
 
 export function ActionDetail({ action, onClose }: ActionDetailProps) {
   const [tab, setTab] = useState<Tab>("responses");
-  const [selectedFrameId, setSelectedFrameId] = useState<string | undefined>();
+  const [selectedItemId, setSelectedItemId] = useState<string | undefined>();
 
-  const selectedFrame =
-    action.responses.find((frame) => frame.id === selectedFrameId) ??
-    action.responses.at(-1);
+  // Cheap enough to derive on every render, and the store only publishes once
+  // per animation frame.
+  const items = responseItems(action);
+  const selectedItem =
+    items.find((item) => item.id === selectedItemId) ?? items.at(-1);
 
   return (
     <aside className={styles.detail}>
@@ -68,8 +74,9 @@ export function ActionDetail({ action, onClose }: ActionDetailProps) {
         {tab === "responses" ? (
           <Responses
             action={action}
-            selectedFrame={selectedFrame}
-            onSelect={setSelectedFrameId}
+            items={items}
+            selectedItem={selectedItem}
+            onSelect={setSelectedItemId}
           />
         ) : null}
       </div>
@@ -88,46 +95,51 @@ function Request({ action }: { action: Action }) {
 
   return (
     <div className={styles.payload}>
-      <JsonView
-        value={action.request.decoded ?? action.request.raw}
-        defaultExpandedDepth={4}
-      />
+      <JsonView value={requestPayload(action)} defaultExpandedDepth={4} />
     </div>
   );
 }
 
+/** Strips the collection an action already names off each result's path. */
+function shortPath(path: string, target: string): string {
+  return path.startsWith(`${target}/`) ? path.slice(target.length + 1) : path;
+}
+
 function Responses({
   action,
-  selectedFrame,
+  items,
+  selectedItem,
   onSelect,
 }: {
   action: Action;
-  selectedFrame: Frame | undefined;
+  items: readonly ResponseItem[];
+  selectedItem: ResponseItem | undefined;
   onSelect: (id: string) => void;
 }) {
-  if (action.responses.length === 0) {
-    return <p className={styles.empty}>No responses yet.</p>;
+  if (items.length === 0) {
+    return <p className={styles.empty}>Nothing has come back yet.</p>;
   }
 
   return (
     <div className={styles.responses}>
       <ol className={styles.list}>
-        {action.responses.map((frame) => (
-          <li key={frame.id}>
+        {items.map((item) => (
+          <li key={item.id}>
             <button
               type="button"
               className={classNames(
                 styles.item,
-                frame.id === selectedFrame?.id && styles.selected,
+                item.removed && styles.removed,
+                item.id === selectedItem?.id && styles.selected,
               )}
-              onClick={() => onSelect(frame.id)}
+              onClick={() => onSelect(item.id)}
             >
-              <span className={styles.arrow}>↓</span>
               <span className={styles.label}>
-                {frame.label ?? frame.raw.slice(0, 80)}
+                {shortPath(item.path, action.target)}
               </span>
               <span className={styles.meta}>
-                {formatBytes(frame.byteLength)} · {formatTime(frame.timestamp)}
+                {item.removed ? "removed" : formatBytes(item.byteLength)} ·{" "}
+                {formatTime(item.timestamp)}
               </span>
             </button>
           </li>
@@ -135,11 +147,8 @@ function Responses({
       </ol>
 
       <div className={styles.payload}>
-        {selectedFrame ? (
-          <JsonView
-            value={selectedFrame.decoded ?? selectedFrame.raw}
-            defaultExpandedDepth={4}
-          />
+        {selectedItem?.body !== undefined ? (
+          <JsonView value={selectedItem.body} defaultExpandedDepth={4} />
         ) : null}
       </div>
     </div>

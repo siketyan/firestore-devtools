@@ -9,6 +9,7 @@
   --accent: #1a73e8;
   --outbound: #1a73e8;
   --inbound: #0f9d58;
+  --waiting: #c6cad0;
   --error: #d93025;
 
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -27,6 +28,7 @@
     --accent: #8ab4f8;
     --outbound: #8ab4f8;
     --inbound: #81c995;
+    --waiting: #4c5157;
     --error: #f28b82;
   }
 }

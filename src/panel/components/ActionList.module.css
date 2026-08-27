@@ -60,6 +60,41 @@
     font-family: var(--font-mono);
   }
 
+  .timelineHeading {
+    width: 200px;
+  }
+
+  .timeline {
+    /* The bars are the only thing in the row that can afford to be squeezed. */
+    width: 200px;
+    min-width: 120px;
+  }
+
+  .track {
+    position: relative;
+    display: block;
+    height: 9px;
+  }
+
+  /* The bar is the wait; what came back is painted over the end of it. */
+  .bar {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    min-width: 2px;
+    border-radius: 2px;
+    background: var(--waiting);
+  }
+
+  .received {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    border-radius: 0 2px 2px 0;
+    background: var(--inbound);
+  }
+
   .target {
     max-width: 480px;
     overflow: hidden;

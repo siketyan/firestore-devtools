@@ -33,6 +33,33 @@ describe("the panel", () => {
     ]);
   });
 
+  it("draws each action where it happened", async () => {
+    const bars = await panel.page
+      .locator("tbody tr td:last-child")
+      .evaluateAll((cells) =>
+        cells.map((cell) => {
+          const bar = cell.querySelector<HTMLElement>("span > span");
+          return {
+            left: Number.parseFloat(bar?.style.left ?? "-1"),
+            width: Number.parseFloat(bar?.style.width ?? "-1"),
+          };
+        }),
+      );
+
+    expect(bars).toHaveLength(5);
+    // The capture starts with the first action and ends with the last.
+    expect(bars[0]?.left).toBe(0);
+    expect(bars.at(-1)).toMatchObject({ left: expect.any(Number) });
+
+    // Every bar starts after the one above it, and stays inside the window.
+    const lefts = bars.map((bar) => bar.left);
+    expect([...lefts].sort((a, b) => a - b)).toEqual(lefts);
+    for (const bar of bars) {
+      expect(bar.width).toBeGreaterThan(0);
+      expect(bar.left + bar.width).toBeLessThanOrEqual(100.001);
+    }
+  });
+
   it("filters on what the rows say", async () => {
     await panel.page.fill("input[type=search]", "users");
     await expect.poll(async () => (await panel.rows()).length).toBe(3);

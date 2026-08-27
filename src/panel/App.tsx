@@ -6,6 +6,7 @@ import * as styles from "./App.module.css";
 import { ActionDetail } from "./components/ActionDetail";
 import { ActionList } from "./components/ActionList";
 import { type KindFilter, matchesKind, Toolbar } from "./components/Toolbar";
+import { timelineOf } from "./timeline";
 import { downloadText } from "./transfer";
 import { useCapture } from "./useCapture";
 
@@ -32,6 +33,9 @@ export function App() {
     () => actions.filter((action) => matches(action, query, kind)),
     [actions, query, kind],
   );
+
+  // Drawn against the whole capture, so filtering does not rescale the bars.
+  const timeline = useMemo(() => timelineOf(actions), [actions]);
 
   const selected = visible.find((action) => action.id === selectedId);
 
@@ -60,6 +64,7 @@ export function App() {
       <div className={styles.body}>
         <ActionList
           actions={visible}
+          timeline={timeline}
           selectedId={selectedId}
           onSelect={setSelectedId}
         />

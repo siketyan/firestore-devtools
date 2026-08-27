@@ -11,8 +11,8 @@ neither of them is named after anything you wrote.
 
 <div>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/panel-dark.png">
-    <img alt="The Firestore panel: a list of actions, and the documents a selected listener has received" src="docs/panel-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/siketyan/firestore-devtools/main/docs/panel-dark.png">
+    <img alt="The Firestore panel: a list of actions, and the documents a selected listener has received" src="https://raw.githubusercontent.com/siketyan/firestore-devtools/main/docs/panel-light.png">
   </picture>
 </div>
 

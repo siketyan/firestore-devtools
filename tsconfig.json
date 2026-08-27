@@ -15,10 +15,6 @@
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "skipLibCheck": true,
-    // Extension.js declares `*.css` as an ambient wildcard module, which
-    // TypeScript does not match against the relative specifiers we import
-    // stylesheets with.
-    "noUncheckedSideEffectImports": false,
     "noEmit": true,
     "types": ["chrome", "extension/types", "extension/types/polyfill"]
   },

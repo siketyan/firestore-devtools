@@ -1,4 +1,4 @@
-import type {RpcInfo} from './types'
+import type { RpcInfo } from "./types";
 
 /**
  * `https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?...`
@@ -7,7 +7,7 @@ import type {RpcInfo} from './types'
  * WebChannel, which puts the fully qualified service and method in the path.
  */
 const WEBCHANNEL_PATH =
-  /^\/(?<service>google\.firestore\.v[0-9a-z]+\.Firestore)\/(?<method>[A-Za-z]\w*)\/channel$/
+  /^\/(?<service>google\.firestore\.v[0-9a-z]+\.Firestore)\/(?<method>[A-Za-z]\w*)\/channel$/;
 
 /**
  * `https://firestore.googleapis.com/v1/projects/p/databases/(default)/documents:commit`
@@ -16,38 +16,38 @@ const WEBCHANNEL_PATH =
  * `:verb` segment (or no verb at all, for the REST-style document reads).
  */
 const REST_PATH =
-  /^\/(?<version>v[0-9a-z]+)\/(?<database>projects\/[^/]+\/databases\/[^/]+)\/(?<resource>.+)$/
+  /^\/(?<version>v[0-9a-z]+)\/(?<database>projects\/[^/]+\/databases\/[^/]+)\/(?<resource>.+)$/;
 
 /** URL verb -> RPC name, mirroring the mapping the Firestore SDK uses. */
 const REST_VERB_TO_RPC: Record<string, string> = {
-  batchGet: 'BatchGetDocuments',
-  batchWrite: 'BatchWrite',
-  beginTransaction: 'BeginTransaction',
-  commit: 'Commit',
-  createDocument: 'CreateDocument',
-  listCollectionIds: 'ListCollectionIds',
-  listDocuments: 'ListDocuments',
-  listen: 'Listen',
-  partitionQuery: 'PartitionQuery',
-  rollback: 'Rollback',
-  runAggregationQuery: 'RunAggregationQuery',
-  runQuery: 'RunQuery',
-  write: 'Write'
-}
+  batchGet: "BatchGetDocuments",
+  batchWrite: "BatchWrite",
+  beginTransaction: "BeginTransaction",
+  commit: "Commit",
+  createDocument: "CreateDocument",
+  listCollectionIds: "ListCollectionIds",
+  listDocuments: "ListDocuments",
+  listen: "Listen",
+  partitionQuery: "PartitionQuery",
+  rollback: "Rollback",
+  runAggregationQuery: "RunAggregationQuery",
+  runQuery: "RunQuery",
+  write: "Write",
+};
 
 /** HTTP verb -> RPC name for the plain resource URLs (no `:verb` suffix). */
 const METHOD_TO_RPC: Record<string, string> = {
-  GET: 'GetDocument',
-  POST: 'CreateDocument',
-  PATCH: 'UpdateDocument',
-  DELETE: 'DeleteDocument'
-}
+  GET: "GetDocument",
+  POST: "CreateDocument",
+  PATCH: "UpdateDocument",
+  DELETE: "DeleteDocument",
+};
 
 function toUrl(rawUrl: string, base?: string): URL | undefined {
   try {
-    return new URL(rawUrl, base ?? globalThis.location?.href)
+    return new URL(rawUrl, base ?? globalThis.location?.href);
   } catch {
-    return undefined
+    return undefined;
   }
 }
 
@@ -60,51 +60,51 @@ function toUrl(rawUrl: string, base?: string): URL | undefined {
  */
 export function identifyRpc(
   rawUrl: string,
-  httpMethod = 'POST',
-  base?: string
+  httpMethod = "POST",
+  base?: string,
 ): RpcInfo | undefined {
-  const url = toUrl(rawUrl, base)
-  if (!url) return undefined
+  const url = toUrl(rawUrl, base);
+  if (!url) return undefined;
 
-  const webChannel = WEBCHANNEL_PATH.exec(url.pathname)?.groups
+  const webChannel = WEBCHANNEL_PATH.exec(url.pathname)?.groups;
   if (webChannel?.service && webChannel.method) {
     return {
       service: webChannel.service,
       method: webChannel.method,
-      transport: 'webchannel',
+      transport: "webchannel",
       // The SDK passes the database as a query parameter on the channel URL.
-      database: url.searchParams.get('database') ?? undefined
-    }
+      database: url.searchParams.get("database") ?? undefined,
+    };
   }
 
-  const rest = REST_PATH.exec(url.pathname)?.groups
+  const rest = REST_PATH.exec(url.pathname)?.groups;
   if (rest?.version && rest.database && rest.resource) {
-    const {version, database, resource} = rest
-    const verb = resource.includes(':')
-      ? resource.slice(resource.lastIndexOf(':') + 1)
-      : undefined
+    const { version, database, resource } = rest;
+    const verb = resource.includes(":")
+      ? resource.slice(resource.lastIndexOf(":") + 1)
+      : undefined;
 
     const method = verb
       ? (REST_VERB_TO_RPC[verb] ?? verb)
-      : (METHOD_TO_RPC[httpMethod.toUpperCase()] ?? httpMethod.toUpperCase())
+      : (METHOD_TO_RPC[httpMethod.toUpperCase()] ?? httpMethod.toUpperCase());
 
     return {
       service: `google.firestore.${version}.Firestore`,
       method,
-      transport: 'rest',
-      database: decodeURIComponent(database)
-    }
+      transport: "rest",
+      database: decodeURIComponent(database),
+    };
   }
 
-  return undefined
+  return undefined;
 }
 
 /** The project id inside a `projects/p/databases/d` resource name. */
 export function projectIdOf(database: string | undefined): string | undefined {
-  return database?.match(/^projects\/([^/]+)/)?.[1]
+  return database?.match(/^projects\/([^/]+)/)?.[1];
 }
 
 /** Short label for the list column, e.g. `Listen` or `Commit`. */
 export function rpcLabel(rpc: RpcInfo): string {
-  return rpc.method
+  return rpc.method;
 }

@@ -7,17 +7,17 @@
  * everything it captures is posted to the isolated-world bridge, which relays
  * it to the background worker.
  */
-import {patchFetch} from './capture/fetch'
-import {patchXhr} from './capture/xhr'
+import { patchFetch } from "./capture/fetch";
+import { patchXhr } from "./capture/xhr";
 
 declare global {
   interface Window {
-    __firestoreDevtoolsInstalled?: boolean
+    __firestoreDevtoolsInstalled?: boolean;
   }
 }
 
 if (!window.__firestoreDevtoolsInstalled) {
-  window.__firestoreDevtoolsInstalled = true
-  patchFetch()
-  patchXhr()
+  window.__firestoreDevtoolsInstalled = true;
+  patchFetch();
+  patchXhr();
 }

@@ -1,21 +1,22 @@
-import './Toolbar.css'
+import { classNames } from "../classNames";
+import * as styles from "./Toolbar.module.css";
 
-export type TransportFilter = 'all' | 'webchannel' | 'rest'
+export type TransportFilter = "all" | "webchannel" | "rest";
 
-const TRANSPORTS: Array<{value: TransportFilter; label: string}> = [
-  {value: 'all', label: 'All'},
-  {value: 'webchannel', label: 'Streaming'},
-  {value: 'rest', label: 'Unary'}
-]
+const TRANSPORTS: Array<{ value: TransportFilter; label: string }> = [
+  { value: "all", label: "All" },
+  { value: "webchannel", label: "Streaming" },
+  { value: "rest", label: "Unary" },
+];
 
 export interface ToolbarProps {
-  query: string
-  onQueryChange: (query: string) => void
-  transport: TransportFilter
-  onTransportChange: (transport: TransportFilter) => void
-  onClear: () => void
-  shown: number
-  total: number
+  query: string;
+  onQueryChange: (query: string) => void;
+  transport: TransportFilter;
+  onTransportChange: (transport: TransportFilter) => void;
+  onClear: () => void;
+  shown: number;
+  total: number;
 }
 
 export function Toolbar({
@@ -25,13 +26,13 @@ export function Toolbar({
   onTransportChange,
   onClear,
   shown,
-  total
+  total,
 }: ToolbarProps) {
   return (
-    <div className="toolbar">
+    <div className={styles.toolbar}>
       <button
         type="button"
-        className="toolbar__button"
+        className={styles.button}
         onClick={onClear}
         title="Clear"
       >
@@ -39,23 +40,22 @@ export function Toolbar({
       </button>
 
       <input
-        className="toolbar__filter"
+        className={styles.filter}
         type="search"
         value={query}
         placeholder="Filter by RPC, URL or payload"
         onChange={(event) => onQueryChange(event.target.value)}
       />
 
-      <div className="toolbar__group">
-        {TRANSPORTS.map(({value, label}) => (
+      <div className={styles.group}>
+        {TRANSPORTS.map(({ value, label }) => (
           <button
             type="button"
             key={value}
-            className={
-              value === transport
-                ? 'toolbar__chip toolbar__chip--active'
-                : 'toolbar__chip'
-            }
+            className={classNames(
+              styles.chip,
+              value === transport && styles.active,
+            )}
             onClick={() => onTransportChange(value)}
           >
             {label}
@@ -63,9 +63,9 @@ export function Toolbar({
         ))}
       </div>
 
-      <span className="toolbar__count">
+      <span className={styles.count}>
         {shown === total ? `${total}` : `${shown} / ${total}`} requests
       </span>
     </div>
-  )
+  );
 }

@@ -8,25 +8,25 @@
 import {
   type CaptureMessage,
   PAGE_MESSAGE_SOURCE,
-  type PageMessage
-} from '../shared/types'
+  type PageMessage,
+} from "../shared/types";
 
-window.addEventListener('message', (event: MessageEvent<unknown>) => {
-  if (event.source !== window) return
+window.addEventListener("message", (event: MessageEvent<unknown>) => {
+  if (event.source !== window) return;
 
-  const data = event.data as Partial<PageMessage> | undefined
-  if (!data || data.source !== PAGE_MESSAGE_SOURCE || !data.event) return
+  const data = event.data as Partial<PageMessage> | undefined;
+  if (!data || data.source !== PAGE_MESSAGE_SOURCE || !data.event) return;
 
   const message: CaptureMessage = {
-    type: 'firestore-devtools/capture',
-    event: data.event
-  }
+    type: "firestore-devtools/capture",
+    event: data.event,
+  };
 
   try {
     // Nothing listens while the panel is closed, and the worker may be asleep;
     // both show up as a rejected promise we can safely drop.
-    void chrome.runtime.sendMessage(message).catch(() => {})
+    void chrome.runtime.sendMessage(message).catch(() => {});
   } catch {
     // The extension was reloaded and this context is orphaned.
   }
-})
+});

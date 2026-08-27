@@ -3,7 +3,7 @@
  * panel that hosts the React app.
  */
 chrome.devtools.panels.create(
-  'Firestore',
-  'images/icon.png',
-  'panel/index.html'
-)
+  "Firestore",
+  "images/icon.png",
+  "panel/index.html",
+);

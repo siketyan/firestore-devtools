@@ -1,45 +1,46 @@
-import type {Exchange} from '../../shared/types'
-import {formatBytes, formatDuration, formatTime} from '../format'
-import './ExchangeList.css'
+import type { Exchange } from "../../shared/types";
+import { classNames } from "../classNames";
+import { formatBytes, formatDuration, formatTime } from "../format";
+import * as styles from "./ExchangeList.module.css";
 
 export interface ExchangeListProps {
-  exchanges: readonly Exchange[]
-  selectedId: string | undefined
-  onSelect: (id: string) => void
+  exchanges: readonly Exchange[];
+  selectedId: string | undefined;
+  onSelect: (id: string) => void;
 }
 
 function statusOf(exchange: Exchange): string {
-  if (exchange.error) return 'error'
-  if (exchange.status) return String(exchange.status)
-  return exchange.state === 'complete' ? '—' : exchange.state
+  if (exchange.error) return "error";
+  if (exchange.status) return String(exchange.status);
+  return exchange.state === "complete" ? "—" : exchange.state;
 }
 
 function durationOf(exchange: Exchange): number | undefined {
   return exchange.finishedAt
     ? exchange.finishedAt - exchange.startedAt
-    : undefined
+    : undefined;
 }
 
 export function ExchangeList({
   exchanges,
   selectedId,
-  onSelect
+  onSelect,
 }: ExchangeListProps) {
   if (exchanges.length === 0) {
     return (
-      <div className="list list--empty">
+      <div className={classNames(styles.list, styles.empty)}>
         <p>No Firestore traffic captured yet.</p>
-        <p className="list__hint">
+        <p className={styles.hint}>
           Reload the inspected page with this panel open to record the initial
           <code> Listen </code> stream.
         </p>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="list">
-      <table className="list__table">
+    <div className={styles.list}>
+      <table className={styles.table}>
         <thead>
           <tr>
             <th>RPC</th>
@@ -55,25 +56,23 @@ export function ExchangeList({
           {exchanges.map((exchange) => (
             <tr
               key={exchange.id}
-              className={[
-                'list__row',
-                `list__row--${exchange.state}`,
-                exchange.id === selectedId ? 'list__row--selected' : ''
-              ]
-                .filter(Boolean)
-                .join(' ')}
+              className={classNames(
+                styles.row,
+                exchange.state === "failed" && styles.failed,
+                exchange.id === selectedId && styles.selected,
+              )}
               onClick={() => onSelect(exchange.id)}
             >
-              <td className="list__rpc">
-                <span className="list__method">{exchange.rpc.method}</span>
-                <span className="list__database">
+              <td className={styles.rpc}>
+                <span className={styles.method}>{exchange.rpc.method}</span>
+                <span className={styles.database}>
                   {exchange.rpc.database ?? exchange.url}
                 </span>
               </td>
               <td>
-                {exchange.rpc.transport === 'webchannel'
-                  ? 'WebChannel'
-                  : 'HTTP'}
+                {exchange.rpc.transport === "webchannel"
+                  ? "WebChannel"
+                  : "HTTP"}
               </td>
               <td>{statusOf(exchange)}</td>
               <td>{exchange.frames.length}</td>
@@ -87,5 +86,5 @@ export function ExchangeList({
         </tbody>
       </table>
     </div>
-  )
+  );
 }

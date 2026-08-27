@@ -12,30 +12,30 @@ import {
   type ExchangeStart,
   type Frame,
   PAGE_MESSAGE_SOURCE,
-  type PageMessage
-} from '../../shared/types'
+  type PageMessage,
+} from "../../shared/types";
 
-const encoder = new TextEncoder()
-let sequence = 0
+const encoder = new TextEncoder();
+let sequence = 0;
 
 export function nextId(prefix: string): string {
-  sequence += 1
-  return `${prefix}-${Date.now().toString(36)}-${sequence}`
+  sequence += 1;
+  return `${prefix}-${Date.now().toString(36)}-${sequence}`;
 }
 
 export function byteLengthOf(text: string): number {
-  return encoder.encode(text).length
+  return encoder.encode(text).length;
 }
 
 function emit(event: CaptureEvent): void {
-  const message: PageMessage = {source: PAGE_MESSAGE_SOURCE, event}
+  const message: PageMessage = { source: PAGE_MESSAGE_SOURCE, event };
   // The payload is the page's own traffic, so the page can already see it;
   // `*` keeps this working inside opaque-origin iframes.
-  window.postMessage(message, '*')
+  window.postMessage(message, "*");
 }
 
 export function emitStart(exchange: ExchangeStart): void {
-  emit({kind: 'start', exchange})
+  emit({ kind: "start", exchange });
 }
 
 export function emitFrame(
@@ -43,20 +43,20 @@ export function emitFrame(
   direction: Direction,
   raw: string,
   decoded?: unknown,
-  label?: string
+  label?: string,
 ): void {
   const frame: Frame = {
-    id: nextId('frame'),
+    id: nextId("frame"),
     direction,
     timestamp: Date.now(),
     raw,
     decoded,
     label,
-    byteLength: byteLengthOf(raw)
-  }
-  emit({kind: 'frame', exchangeId, frame})
+    byteLength: byteLengthOf(raw),
+  };
+  emit({ kind: "frame", exchangeId, frame });
 }
 
 export function emitEnd(exchangeId: string, patch: ExchangeEnd): void {
-  emit({kind: 'end', exchangeId, patch})
+  emit({ kind: "end", exchangeId, patch });
 }

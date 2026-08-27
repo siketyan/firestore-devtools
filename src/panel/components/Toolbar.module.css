@@ -1,0 +1,49 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-alt);
+
+  .button,
+  .chip {
+    padding: 3px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--bg-hover);
+    }
+  }
+
+  .chip.active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .group {
+    display: flex;
+    gap: 4px;
+  }
+
+  .filter {
+    flex: 1;
+    min-width: 120px;
+    padding: 3px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font: inherit;
+  }
+
+  .count {
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+}

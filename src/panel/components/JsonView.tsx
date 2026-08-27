@@ -1,16 +1,17 @@
-import {useState} from 'react'
+import { useState } from "react";
 
-import './JsonView.css'
+import { classNames } from "../classNames";
+import * as styles from "./JsonView.module.css";
 
 export interface JsonViewProps {
-  value: unknown
+  value: unknown;
   /** Depth up to which nodes start expanded. */
-  defaultExpandedDepth?: number
+  defaultExpandedDepth?: number;
 }
 
-export function JsonView({value, defaultExpandedDepth = 2}: JsonViewProps) {
+export function JsonView({ value, defaultExpandedDepth = 2 }: JsonViewProps) {
   return (
-    <div className="json">
+    <div className={styles.json}>
       <JsonNode
         name={undefined}
         value={value}
@@ -18,48 +19,48 @@ export function JsonView({value, defaultExpandedDepth = 2}: JsonViewProps) {
         defaultExpandedDepth={defaultExpandedDepth}
       />
     </div>
-  )
+  );
 }
 
 interface JsonNodeProps {
-  name: string | undefined
-  value: unknown
-  depth: number
-  defaultExpandedDepth: number
+  name: string | undefined;
+  value: unknown;
+  depth: number;
+  defaultExpandedDepth: number;
 }
 
-function JsonNode({name, value, depth, defaultExpandedDepth}: JsonNodeProps) {
-  const [expanded, setExpanded] = useState(depth < defaultExpandedDepth)
+function JsonNode({ name, value, depth, defaultExpandedDepth }: JsonNodeProps) {
+  const [expanded, setExpanded] = useState(depth < defaultExpandedDepth);
 
-  const isArray = Array.isArray(value)
-  const isObject = !isArray && typeof value === 'object' && value !== null
+  const isArray = Array.isArray(value);
+  const isObject = !isArray && typeof value === "object" && value !== null;
 
   if (!isArray && !isObject) {
     return (
-      <div className="json__row" style={{paddingLeft: depth * 12}}>
-        {name != null ? <span className="json__key">{name}: </span> : null}
-        <span className={`json__value json__value--${typeOf(value)}`}>
+      <div className={styles.row} style={{ paddingLeft: depth * 12 }}>
+        {name != null ? <span className={styles.key}>{name}: </span> : null}
+        <span className={classNames(styles.value, valueStyle(value))}>
           {render(value)}
         </span>
       </div>
-    )
+    );
   }
 
   const entries = isArray
     ? (value as unknown[]).map((item, index) => [String(index), item] as const)
-    : Object.entries(value as Record<string, unknown>)
+    : Object.entries(value as Record<string, unknown>);
 
   return (
     <div>
       <button
         type="button"
-        className="json__row json__row--toggle"
-        style={{paddingLeft: depth * 12}}
+        className={classNames(styles.row, styles.toggle)}
+        style={{ paddingLeft: depth * 12 }}
         onClick={() => setExpanded((current) => !current)}
       >
-        <span className="json__caret">{expanded ? '▾' : '▸'}</span>
-        {name != null ? <span className="json__key">{name}: </span> : null}
-        <span className="json__summary">
+        <span className={styles.caret}>{expanded ? "▾" : "▸"}</span>
+        {name != null ? <span className={styles.key}>{name}: </span> : null}
+        <span className={styles.summary}>
           {isArray ? `Array(${entries.length})` : `{${entries.length}}`}
         </span>
       </button>
@@ -76,15 +77,26 @@ function JsonNode({name, value, depth, defaultExpandedDepth}: JsonNodeProps) {
           ))
         : null}
     </div>
-  )
+  );
 }
 
-function typeOf(value: unknown): string {
-  if (value === null) return 'null'
-  return typeof value
+/** The class that colours a leaf according to its JSON type. */
+function valueStyle(value: unknown): string | undefined {
+  if (value === null) return styles.null;
+
+  switch (typeof value) {
+    case "string":
+      return styles.string;
+    case "number":
+      return styles.number;
+    case "boolean":
+      return styles.boolean;
+    default:
+      return styles.undefined;
+  }
 }
 
 function render(value: unknown): string {
-  if (typeof value === 'string') return `"${value}"`
-  return String(value)
+  if (typeof value === "string") return `"${value}"`;
+  return String(value);
 }

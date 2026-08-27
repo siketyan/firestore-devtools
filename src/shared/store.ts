@@ -1,10 +1,10 @@
-import type {CaptureEvent, Exchange} from './types'
+import type { CaptureEvent, Exchange } from "./types";
 
 export interface ExchangeStoreOptions {
   /** Oldest exchanges are dropped past this count. */
-  maxExchanges?: number
+  maxExchanges?: number;
   /** Oldest frames of a single exchange are dropped past this count. */
-  maxFramesPerExchange?: number
+  maxFramesPerExchange?: number;
 }
 
 /**
@@ -16,105 +16,105 @@ export interface ExchangeStoreOptions {
  * snapshot array holding them, so subscribers have something to compare.
  */
 export class ExchangeStore {
-  readonly #maxExchanges: number
-  readonly #maxFramesPerExchange: number
-  readonly #order: Exchange[] = []
-  readonly #byId = new Map<string, Exchange>()
-  readonly #listeners = new Set<() => void>()
+  readonly #maxExchanges: number;
+  readonly #maxFramesPerExchange: number;
+  readonly #order: Exchange[] = [];
+  readonly #byId = new Map<string, Exchange>();
+  readonly #listeners = new Set<() => void>();
   /** Rebuilt on every change, so subscribers can compare it by identity. */
-  #snapshot: readonly Exchange[] = []
+  #snapshot: readonly Exchange[] = [];
 
   constructor(options: ExchangeStoreOptions = {}) {
-    this.#maxExchanges = options.maxExchanges ?? 500
-    this.#maxFramesPerExchange = options.maxFramesPerExchange ?? 500
+    this.#maxExchanges = options.maxExchanges ?? 500;
+    this.#maxFramesPerExchange = options.maxFramesPerExchange ?? 500;
   }
 
   get(id: string): Exchange | undefined {
-    return this.#byId.get(id)
+    return this.#byId.get(id);
   }
 
   subscribe = (listener: () => void): (() => void) => {
-    this.#listeners.add(listener)
+    this.#listeners.add(listener);
     return () => {
-      this.#listeners.delete(listener)
-    }
-  }
+      this.#listeners.delete(listener);
+    };
+  };
 
   /**
    * The current exchanges. The array identity changes on every mutation, and
    * only then, which is what `useSyncExternalStore` needs.
    */
-  getSnapshot = (): readonly Exchange[] => this.#snapshot
+  getSnapshot = (): readonly Exchange[] => this.#snapshot;
 
   apply(event: CaptureEvent): void {
     switch (event.kind) {
-      case 'start': {
-        if (this.#byId.has(event.exchange.id)) return
+      case "start": {
+        if (this.#byId.has(event.exchange.id)) return;
         const exchange: Exchange = {
           ...event.exchange,
-          state: 'pending',
+          state: "pending",
           responseHeaders: {},
           bytesReceived: 0,
-          frames: []
-        }
-        this.#order.push(exchange)
-        this.#byId.set(exchange.id, exchange)
+          frames: [],
+        };
+        this.#order.push(exchange);
+        this.#byId.set(exchange.id, exchange);
 
         while (this.#order.length > this.#maxExchanges) {
-          const evicted = this.#order.shift()
-          if (evicted) this.#byId.delete(evicted.id)
+          const evicted = this.#order.shift();
+          if (evicted) this.#byId.delete(evicted.id);
         }
-        break
+        break;
       }
 
-      case 'frame': {
-        const exchange = this.#byId.get(event.exchangeId)
-        if (!exchange) return
-        exchange.frames.push(event.frame)
+      case "frame": {
+        const exchange = this.#byId.get(event.exchangeId);
+        if (!exchange) return;
+        exchange.frames.push(event.frame);
         if (exchange.frames.length > this.#maxFramesPerExchange) {
           exchange.frames.splice(
             0,
-            exchange.frames.length - this.#maxFramesPerExchange
-          )
+            exchange.frames.length - this.#maxFramesPerExchange,
+          );
         }
-        if (exchange.state === 'pending') exchange.state = 'streaming'
-        break
+        if (exchange.state === "pending") exchange.state = "streaming";
+        break;
       }
 
-      case 'end': {
-        const exchange = this.#byId.get(event.exchangeId)
-        if (!exchange) return
-        Object.assign(exchange, event.patch)
+      case "end": {
+        const exchange = this.#byId.get(event.exchangeId);
+        if (!exchange) return;
+        Object.assign(exchange, event.patch);
         exchange.state =
           event.patch.error != null || (exchange.status ?? 200) >= 400
-            ? 'failed'
-            : 'complete'
-        break
+            ? "failed"
+            : "complete";
+        break;
       }
     }
 
-    this.#bump()
+    this.#bump();
   }
 
   /** Replaces the contents wholesale, e.g. with the background's backlog. */
   replace(exchanges: readonly Exchange[]): void {
-    this.#order.length = 0
-    this.#byId.clear()
+    this.#order.length = 0;
+    this.#byId.clear();
     for (const exchange of exchanges) {
-      this.#order.push(exchange)
-      this.#byId.set(exchange.id, exchange)
+      this.#order.push(exchange);
+      this.#byId.set(exchange.id, exchange);
     }
-    this.#bump()
+    this.#bump();
   }
 
   clear(): void {
-    this.#order.length = 0
-    this.#byId.clear()
-    this.#bump()
+    this.#order.length = 0;
+    this.#byId.clear();
+    this.#bump();
   }
 
   #bump(): void {
-    this.#snapshot = [...this.#order]
-    for (const listener of this.#listeners) listener()
+    this.#snapshot = [...this.#order];
+    for (const listener of this.#listeners) listener();
   }
 }

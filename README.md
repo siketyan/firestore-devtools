@@ -90,8 +90,8 @@ pnpm lint:fix       # biome check --write
 pnpm format         # biome format --write
 ```
 
-Dependencies are pinned to exact versions; `.npmrc` sets `save-exact` so they
-stay that way.
+Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
+`savePrefix: ''` so they stay that way.
 
 ## Roadmap
 

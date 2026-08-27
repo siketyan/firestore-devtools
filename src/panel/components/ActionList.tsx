@@ -1,3 +1,5 @@
+import { useLayoutEffect, useRef } from "react";
+
 import type { Action, ActionKind } from "../../shared/actions";
 import { classNames } from "../classNames";
 import { formatDuration, formatTime } from "../format";
@@ -28,7 +30,33 @@ function latencyOf(action: Action): number | undefined {
   return action.respondedAt ? action.respondedAt - action.startedAt : undefined;
 }
 
+/** Within this many pixels of the bottom still counts as being at the bottom. */
+const STICK_THRESHOLD = 8;
+
 export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
+  const listRef = useRef<HTMLDivElement>(null);
+  // Follow new actions the way a log does, but only while the reader has not
+  // scrolled up to look at something.
+  const stick = useRef(true);
+  const shown = useRef(0);
+
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    // Rows are rewritten constantly as responses arrive; only a change in how
+    // many there are can move the bottom.
+    if (list && stick.current && actions.length !== shown.current) {
+      list.scrollTop = list.scrollHeight;
+    }
+    shown.current = actions.length;
+  });
+
+  const onScroll = () => {
+    const list = listRef.current;
+    if (!list) return;
+    stick.current =
+      list.scrollHeight - list.scrollTop - list.clientHeight <= STICK_THRESHOLD;
+  };
+
   if (actions.length === 0) {
     return (
       <div className={classNames(styles.list, styles.empty)}>
@@ -42,7 +70,7 @@ export function ActionList({ actions, selectedId, onSelect }: ActionListProps) {
   }
 
   return (
-    <div className={styles.list}>
+    <div ref={listRef} className={styles.list} onScroll={onScroll}>
       <table className={styles.table}>
         <thead>
           <tr>

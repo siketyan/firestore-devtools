@@ -32,8 +32,10 @@ A one-shot `getDocs()` opens a `Listen` target exactly as `onSnapshot()` does,
 so both are a `QUERY`; whether one is still running shows up as its status
 (`active` versus `complete`).
 
-Selecting a row shows its query clauses, then two views that skip the
-plumbing:
+The list follows new actions the way a log does, and stops following as soon
+as you scroll up to read something.
+
+Selecting a row opens two views that skip the plumbing:
 
 - **Request** — the structured query itself, not the `addTarget.query.…`
   wrapper that carried it to the server.
@@ -111,9 +113,10 @@ page realm            isolated realm        extension              devtools
 - **`firestore.ts`** maps a request URL to an RPC.
 - **`webchannel.ts`** implements the Closure WebChannel framing (a form-encoded
   `req0___data__=…` body outbound, length-prefixed JSON chunks inbound).
-- **`proto.ts`** reads the protobuf-JSON shapes: resource names, `Value`
-  wrappers and `StructuredQuery`, which is what turns a query into
-  `where read == false · orderBy createdAt desc · limit 25`.
+- **`proto.ts`** reads the protobuf-JSON shapes: resource names, and the part
+  of `StructuredQuery` that says which collection is being read.
+- **`payloads.ts`** digs the query out of a request and the documents out of
+  the responses, which is what the detail pane shows.
 - **`actions.ts`** is the correlator described above, and the projection the
   panel lists.
 - **`store.ts`** replays the capture events into both projections. The
@@ -152,10 +155,8 @@ Dependencies are pinned to exact versions; `pnpm-workspace.yaml` sets
 ## Roadmap
 
 - Persist across page navigation, with a "preserve log" toggle.
-- Unwrap the `Value` wrappers in document bodies too, so a `documentChange`
-  reads as the document the app sees rather than as
-  `{"body": {"stringValue": "hi"}}`. `proto.ts` already does this for the
-  values inside a query.
+- Unwrap the `Value` wrappers in document bodies, so a document reads the way
+  the app sees it rather than as `{"body": {"stringValue": "hi"}}`.
 - A raw transport view, for debugging the channel itself rather than the
   actions riding on it — the handshakes and keepalives the action view drops.
 - Timeline/waterfall column.

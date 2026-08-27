@@ -10,12 +10,7 @@
  */
 
 import { asArray, asMessages, asNumber, asNumbers, asRecord } from "./json";
-import {
-  queryCollection,
-  relativePath,
-  type StructuredQuery,
-  summariseQuery,
-} from "./proto";
+import { queryCollection, relativePath, type StructuredQuery } from "./proto";
 import type { Exchange, Frame } from "./types";
 
 /**
@@ -523,7 +518,6 @@ function describeTarget(addTarget: Record<string, unknown>): Description {
   return {
     kind: "query",
     target: queryCollection(parent, structured) || "(query)",
-    detail: summariseQuery(structured) || undefined,
   };
 }
 
@@ -583,7 +577,6 @@ function describeRest(
       return {
         kind: "query",
         target: queryCollection(resource, structured) || resource || "(query)",
-        detail: summariseQuery(structured) || undefined,
       };
     }
 

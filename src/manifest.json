@@ -12,6 +12,13 @@
     "128": "images/icon.png"
   },
   "devtools_page": "devtools/index.html",
+  "firefox:browser_specific_settings": {
+    "gecko": {
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
   "background": {
     "chromium:service_worker": "background/index.ts",
     "firefox:scripts": ["background/index.ts"]

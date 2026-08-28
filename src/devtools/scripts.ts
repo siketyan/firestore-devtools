@@ -9,8 +9,12 @@
  * panel opens as a blank white page. A leading slash means the extension root
  * in both.
  */
+// The tab renders the icon at 16px, so the 32 is here for the 2x displays; a
+// browser on a 1x one halves it exactly. Both paths have to sit in the call as
+// plain literals — Extension.js reads them statically to find the panel page,
+// and anything between the arguments loses it the entry point.
 chrome.devtools.panels.create(
   "Firestore",
-  "/images/icon.png",
+  "/images/icon-32.png",
   "/panel/index.html",
 );

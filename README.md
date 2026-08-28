@@ -16,10 +16,6 @@ neither of them is named after anything you wrote.
   </picture>
 </div>
 
-> **Status: early**, but complete enough to use: it captures both transports,
-> puts each request back together with its responses, and shows them as the
-> queries, reads, listeners and writes the app actually made.
-
 ## Getting started
 
 Requires Node.js 22.12 or newer. The pnpm version is pinned in

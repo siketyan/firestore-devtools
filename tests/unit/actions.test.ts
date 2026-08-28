@@ -2,7 +2,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import type { Action } from "../../src/shared/actions";
 import { ExchangeStore } from "../../src/shared/store";
-import { DOCUMENTS, events, session } from "../support/session";
+import type { CaptureEvent, ExchangeEnd } from "../../src/shared/types";
+import {
+  DATABASE,
+  DOCUMENTS,
+  events,
+  frame,
+  LISTEN_RPC,
+  restRpc,
+  session,
+} from "../support/session";
 
 function replay(): ExchangeStore {
   const store = new ExchangeStore();
@@ -95,6 +104,111 @@ describe("ActionIndex", () => {
       const action = find(actions, "users/u9");
       expect(action.state).toBe("failed");
       expect(action.status).toBe(403);
+    });
+  });
+
+  describe("an exchange that was cancelled rather than failing", () => {
+    /**
+     * One listener that received a document, on a backchannel that ended the
+     * way `end` says it did.
+     */
+    function listener(end: ExchangeEnd): ExchangeStore {
+      const store = new ExchangeStore();
+      const request = frame("outbound", 5, {
+        database: DATABASE,
+        addTarget: {
+          targetId: 2,
+          query: {
+            parent: DOCUMENTS,
+            structuredQuery: { from: [{ collectionId: "messages" }] },
+          },
+        },
+      });
+      const current = frame("inbound", 20, [
+        { targetChange: { targetChangeType: "CURRENT", targetIds: [2] } },
+      ]);
+      const document = frame("inbound", 30, [
+        {
+          documentChange: {
+            document: { name: `${DOCUMENTS}/messages/m1`, fields: {} },
+            targetIds: [2],
+          },
+        },
+      ]);
+
+      for (const event of [
+        {
+          kind: "start",
+          exchange: { id: "post", rpc: LISTEN_RPC, startedAt: 0 },
+        },
+        {
+          kind: "start",
+          exchange: { id: "backchannel", rpc: LISTEN_RPC, startedAt: 0 },
+        },
+        { kind: "frame", exchangeId: "post", frame: request },
+        { kind: "frame", exchangeId: "backchannel", frame: current },
+        { kind: "frame", exchangeId: "backchannel", frame: document },
+        { kind: "end", exchangeId: "backchannel", patch: end },
+      ] satisfies CaptureEvent[]) {
+        store.apply(event);
+      }
+
+      return store;
+    }
+
+    it("is not a failure of the exchange", () => {
+      const exchanges = listener({ canceled: true }).getSnapshot();
+      const backchannel = exchanges.find((it) => it.id === "backchannel");
+
+      expect(backchannel?.state).toBe("canceled");
+      expect(backchannel?.error).toBeUndefined();
+      // The flag says how it ended; it is not a field of the exchange.
+      expect(backchannel).not.toHaveProperty("canceled");
+    });
+
+    it("leaves the listeners riding on it alone", () => {
+      const [action] = listener({ canceled: true }).getActions();
+
+      // The SDK recycles the backchannel and re-adds the target; the listener
+      // never stopped, and the document it delivered is still real.
+      expect(action?.state).toBe("active");
+      expect(action?.error).toBeUndefined();
+      expect(action?.documentCount).toBe(1);
+    });
+
+    it("still fails them when the stream really failed", () => {
+      const [action] = listener({
+        error: "Network request failed",
+      }).getActions();
+
+      expect(action?.state).toBe("failed");
+      expect(action?.error).toBe("Network request failed");
+    });
+
+    it("does not report a cancelled one-shot read as complete", () => {
+      const store = new ExchangeStore();
+      const request = frame("outbound", 0, {
+        documents: [`${DOCUMENTS}/users/u1`],
+      });
+
+      for (const event of [
+        {
+          kind: "start",
+          exchange: {
+            id: "get",
+            rpc: restRpc("BatchGetDocuments"),
+            startedAt: 0,
+          },
+        },
+        { kind: "frame", exchangeId: "get", frame: request },
+        { kind: "end", exchangeId: "get", patch: { canceled: true } },
+      ] satisfies CaptureEvent[]) {
+        store.apply(event);
+      }
+
+      const [action] = store.getActions();
+      expect(action?.state).toBe("canceled");
+      expect(action?.error).toBeUndefined();
     });
   });
 

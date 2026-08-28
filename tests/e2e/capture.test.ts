@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type {
   CaptureEvent,
+  ExchangeEnd,
   ExchangeStart,
   Frame,
 } from "../../src/shared/types";
@@ -78,8 +79,25 @@ describe("capturing a page's Firestore traffic", () => {
     // And something that is not Firestore at all.
     await page.evaluate(() => fetch("/nope").catch(() => undefined));
 
+    // A channel the page gives up on. The WebChannel does this as a matter of
+    // course — the backchannel is recycled, an unsubscribe drops the request
+    // in flight — and the Network panel calls none of it an error.
+    await page.evaluate(
+      () =>
+        new Promise<void>((resolve) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open(
+            "POST",
+            "/google.firestore.v1.Firestore/Write/channel?database=projects%2Fdemo%2Fdatabases%2F(default)&VER=8&RID=2&SID=def&TYPE=xmlhttp",
+          );
+          xhr.addEventListener("abort", () => resolve());
+          xhr.send("count=0");
+          xhr.abort();
+        }),
+    );
+
     await page.waitForFunction(
-      () => window.__captured.filter((it) => it.kind === "end").length === 2,
+      () => window.__captured.filter((it) => it.kind === "end").length === 3,
     );
     captured = await page.evaluate(() => window.__captured);
   });
@@ -103,6 +121,16 @@ describe("capturing a page's Firestore traffic", () => {
         (event) => (event as Extract<CaptureEvent, { kind: "frame" }>).frame,
       );
 
+  const endFor = (exchange: ExchangeStart): ExchangeEnd => {
+    const found = captured.find(
+      (event) => event.kind === "end" && event.exchangeId === exchange.id,
+    );
+    if (found?.kind !== "end") {
+      throw new Error(`nothing ended for ${exchange.rpc.method}`);
+    }
+    return found.patch;
+  };
+
   const exchangeFor = (method: string): ExchangeStart => {
     const found = starts().find((it) => it.rpc.method === method);
     if (!found) throw new Error(`nothing captured for ${method}`);
@@ -114,7 +142,7 @@ describe("capturing a page's Firestore traffic", () => {
       starts()
         .map((it) => it.rpc.method)
         .sort(),
-    ).toEqual(["Commit", "Listen"]);
+    ).toEqual(["Commit", "Listen", "Write"]);
   });
 
   it("reads the database off the channel URL", () => {
@@ -158,9 +186,15 @@ describe("capturing a page's Firestore traffic", () => {
   });
 
   it("reports the outcome of each exchange", () => {
-    const ends = captured.filter((event) => event.kind === "end");
+    expect(endFor(exchangeFor("Listen")).status).toBe(200);
+    expect(endFor(exchangeFor("Commit")).status).toBe(200);
+  });
 
-    expect(ends.map((event) => event.patch.status)).toEqual([200, 200]);
+  it("reports a request the page gave up on as cancelled, not failed", () => {
+    const end = endFor(exchangeFor("Write"));
+
+    expect(end.canceled).toBe(true);
+    expect(end.error).toBeUndefined();
   });
 
   it("registers the background worker", async () => {

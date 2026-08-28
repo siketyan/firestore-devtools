@@ -16,7 +16,13 @@ export type Transport =
 /** Which side of the wire a frame came from. */
 export type Direction = "outbound" | "inbound";
 
-export type ExchangeState = "pending" | "streaming" | "complete" | "failed";
+export type ExchangeState =
+  | "pending"
+  | "streaming"
+  | "complete"
+  /** The caller gave up on it — an abort, a navigation. Not a failure. */
+  | "canceled"
+  | "failed";
 
 /** What we could work out about the RPC behind a request URL. */
 export interface RpcInfo {
@@ -66,7 +72,15 @@ export type ExchangeStart = Pick<Exchange, "id" | "rpc" | "startedAt">;
 /** Fields that are only known once the response settles. */
 export type ExchangeEnd = Partial<
   Pick<Exchange, "finishedAt" | "status" | "error">
->;
+> & {
+  /**
+   * The request was cancelled rather than failing. The WebChannel transport
+   * cancels as a matter of course — the backchannel is recycled, an
+   * unsubscribe drops the request in flight, a navigation takes the lot — and
+   * the Network panel does not call any of that an error either.
+   */
+  canceled?: boolean;
+};
 
 export type CaptureEvent =
   | { kind: "start"; exchange: ExchangeStart }

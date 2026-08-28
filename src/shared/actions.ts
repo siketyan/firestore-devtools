@@ -29,7 +29,13 @@ export type ActionKind =
   /** Transaction bookkeeping. */
   | "transaction";
 
-export type ActionState = "pending" | "active" | "complete" | "failed";
+export type ActionState =
+  | "pending"
+  | "active"
+  | "complete"
+  /** Its exchange was cancelled before it said how it went. */
+  | "canceled"
+  | "failed";
 
 export interface Action {
   id: string;
@@ -105,7 +111,7 @@ export class ActionIndex {
       this.ingest(message.exchange, message.frame);
     for (const exchange of exchanges) {
       // A stream that is still open has no outcome to apply yet.
-      if (exchange.state === "complete" || exchange.state === "failed") {
+      if (exchange.state !== "pending" && exchange.state !== "streaming") {
         this.settle(exchange);
       }
     }
@@ -127,6 +133,8 @@ export class ActionIndex {
 
   /** Applies an exchange's outcome to the actions it carried. */
   settle(exchange: Exchange): void {
+    const canceled = exchange.state === "canceled";
+
     const unary = this.#byExchange.get(exchange.id);
     if (unary) {
       const action = this.#byId.get(unary);
@@ -134,12 +142,23 @@ export class ActionIndex {
         action.status = exchange.status;
         action.error = exchange.error;
         action.endedAt = exchange.finishedAt;
-        action.state = failedFrom(exchange) ? "failed" : "complete";
+        action.state = canceled
+          ? "canceled"
+          : failedFrom(exchange)
+            ? "failed"
+            : "complete";
       }
     }
 
-    // A stream that dies takes its open targets with it.
-    if (exchange.rpc.transport === "webchannel" && failedFrom(exchange)) {
+    // A stream that dies takes its open targets with it — but one that was
+    // merely cancelled does not. The SDK recycles the backchannel on its own
+    // schedule and re-adds the targets on the next one; the listener never
+    // stopped working, and the documents it already delivered are real.
+    if (
+      exchange.rpc.transport === "webchannel" &&
+      !canceled &&
+      failedFrom(exchange)
+    ) {
       for (const [key, actionId] of this.#openTargets) {
         if (!key.startsWith(`${exchange.rpc.database ?? ""}#`)) continue;
         const action = this.#byId.get(actionId);

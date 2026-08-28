@@ -3,7 +3,7 @@
  * `Listen` and `Write` streams is built on.
  */
 import { identifyRpc } from "../../shared/firestore";
-import type { RpcInfo } from "../../shared/types";
+import type { ExchangeEnd, RpcInfo } from "../../shared/types";
 import { emitEnd, emitStart, nextId } from "./channel";
 import {
   bodyToText,
@@ -69,12 +69,16 @@ export function patchXhr(): void {
     // stream is open, which is what makes incremental decoding possible.
     this.addEventListener("readystatechange", () => pump(this));
     this.addEventListener("progress", () => pump(this));
-    this.addEventListener("loadend", () => finish(this));
+    this.addEventListener("loadend", () => finish(this, {}));
     this.addEventListener("error", () =>
-      finish(this, "Network request failed"),
+      finish(this, { error: "Network request failed" }),
     );
-    this.addEventListener("timeout", () => finish(this, "Request timed out"));
-    this.addEventListener("abort", () => finish(this, "Request aborted"));
+    this.addEventListener("timeout", () =>
+      finish(this, { error: "Request timed out" }),
+    );
+    // An abort is how the WebChannel recycles its backchannel and how an
+    // unsubscribe drops a request in flight. Nothing went wrong.
+    this.addEventListener("abort", () => finish(this, { canceled: true }));
 
     return originalSend.call(this, body as XMLHttpRequestBodyInit);
   };
@@ -100,7 +104,7 @@ function pump(xhr: XMLHttpRequest): void {
   if (text != null) state.sink.replace(text);
 }
 
-function finish(xhr: XMLHttpRequest, error?: string): void {
+function finish(xhr: XMLHttpRequest, outcome: ExchangeEnd): void {
   const state = xhrStates.get(xhr);
   if (!state || state.finished) return;
 
@@ -111,6 +115,6 @@ function finish(xhr: XMLHttpRequest, error?: string): void {
   emitEnd(state.exchangeId, {
     finishedAt: Date.now(),
     status: xhr.status || undefined,
-    error,
+    ...outcome,
   });
 }

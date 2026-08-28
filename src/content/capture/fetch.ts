@@ -3,7 +3,7 @@
  * and, when `useFetchStreams` is on, its streaming ones too.
  */
 import { identifyRpc } from "../../shared/firestore";
-import type { RpcInfo } from "../../shared/types";
+import type { ExchangeEnd, RpcInfo } from "../../shared/types";
 import { emitEnd, emitStart, nextId } from "./channel";
 import { bodyToText, createResponseSink, emitRequestFrames } from "./payload";
 
@@ -44,10 +44,7 @@ export function patchFetch(): void {
         init,
       );
     } catch (error) {
-      emitEnd(exchangeId, {
-        finishedAt: Date.now(),
-        error: error instanceof Error ? error.message : String(error),
-      });
+      emitEnd(exchangeId, { finishedAt: Date.now(), ...outcomeOf(error) });
       throw error;
     }
 
@@ -90,7 +87,21 @@ async function drainResponse(
     emitEnd(exchangeId, {
       status,
       finishedAt: Date.now(),
-      error: error instanceof Error ? error.message : String(error),
+      ...outcomeOf(error),
     });
   }
+}
+
+/**
+ * How the exchange ended. An abort is the caller changing its mind — the SDK
+ * dropping a request on unsubscribe, or the document going away underneath
+ * it — which the Network panel reports as cancelled rather than as an error,
+ * and so do we. A `TypeError` is indistinguishable from a real network
+ * failure here, so it stays one.
+ */
+function outcomeOf(error: unknown): ExchangeEnd {
+  if (error instanceof Error && error.name === "AbortError") {
+    return { canceled: true };
+  }
+  return { error: error instanceof Error ? error.message : String(error) };
 }

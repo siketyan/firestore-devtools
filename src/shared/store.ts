@@ -82,9 +82,12 @@ export class ExchangeStore {
       case "end": {
         const exchange = this.#byId.get(event.exchangeId);
         if (!exchange) return;
-        Object.assign(exchange, event.patch);
-        exchange.state =
-          event.patch.error != null || (exchange.status ?? 200) >= 400
+        // `canceled` says how the exchange ended rather than being part of it.
+        const { canceled, ...patch } = event.patch;
+        Object.assign(exchange, patch);
+        exchange.state = canceled
+          ? "canceled"
+          : patch.error != null || (exchange.status ?? 200) >= 400
             ? "failed"
             : "complete";
         this.#actions?.settle(exchange);
